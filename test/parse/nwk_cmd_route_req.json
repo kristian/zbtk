@@ -1,0 +1,108 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 50,
+  "time": {
+    "$hex": "d84f6fae8a47ecff"
+  },
+  "seqno": 774290,
+  "length": 51,
+  "wpan": {
+    "fcf": {
+      "$hex": "4188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": false,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 93,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "ffff"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0912"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "fcff"
+      },
+      "src": {
+        "$hex": "0000"
+      },
+      "radius": 28,
+      "seqno": 218,
+      "src64": {
+        "$hex": "6c5948fefff52e3c"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 7527753,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "0b9b0178"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "01"
+        },
+        "route": {
+          "opts": {
+            "mcast": false,
+            "dest_ext": false,
+            "many2one": 1
+          },
+          "id": 4,
+          "dest": {
+            "$hex": "fcff"
+          },
+          "cost": 3
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "fece"
+    }
+  }
+}

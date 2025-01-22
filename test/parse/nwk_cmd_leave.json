@@ -1,0 +1,102 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 172,
+  "time": {
+    "$hex": "d84f31e5cd64d7f1"
+  },
+  "seqno": 792106,
+  "length": 47,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 39,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "d63e"
+    },
+    "src16": {
+      "$hex": "6ba9"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0912"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "fdff"
+      },
+      "src": {
+        "$hex": "6ba9"
+      },
+      "radius": 1,
+      "seqno": 230,
+      "src64": {
+        "$hex": "7db023feffa7db28"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 196736,
+        "src64": {
+          "$hex": "7db023feffa7db28"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "8f035c94"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "04"
+        },
+        "leave": {
+          "children": false,
+          "request": false,
+          "rejoin": true
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "14df"
+    }
+  },
+  "$type": "NWK_CMD_LEAVE"
+}

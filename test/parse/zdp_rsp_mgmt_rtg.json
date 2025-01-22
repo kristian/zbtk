@@ -1,0 +1,117 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 117,
+  "time": {
+    "$hex": "d84f6582ffaf4279"
+  },
+  "seqno": 1635764,
+  "length": 47,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 71,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "0000"
+    },
+    "src16": {
+      "$hex": "1532"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "4802"
+      },
+      "fc": {
+        "discovery": 1,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": false,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "0000"
+      },
+      "src": {
+        "$hex": "1532"
+      },
+      "radius": 30,
+      "seqno": 250,
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 8936506,
+        "src64": {
+          "$hex": "0bb4000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "72a63b53"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "40"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": true,
+          "security": false,
+          "ack_format": false,
+          "delivery": 0,
+          "type": 0
+        },
+        "dst": 0,
+        "cluster": {
+          "$hex": "3280"
+        },
+        "profile": {
+          "$hex": "0000"
+        },
+        "src": 0,
+        "counter": 171,
+        "zbee_zdp": {
+          "seqno": 86,
+          "status": {
+            "$hex": "84"
+          }
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "efe5"
+    }
+  },
+  "$type": "ZDP_RSP_MGMT_RTG"
+}

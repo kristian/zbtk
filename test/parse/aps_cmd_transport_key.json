@@ -1,0 +1,119 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 134,
+  "time": {
+    "$hex": "d84f0cd2d45f9df6"
+  },
+  "seqno": 575209,
+  "length": 73,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 51,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "deba"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "4800"
+      },
+      "fc": {
+        "discovery": 1,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": false,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": false,
+        "security": false,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "deba"
+      },
+      "src": {
+        "$hex": "d63e"
+      },
+      "radius": 1,
+      "seqno": 136,
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "21"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": false,
+          "security": true,
+          "delivery": 0,
+          "ack_format": false,
+          "type": 1
+        },
+        "counter": 215,
+        "sec": {
+          "scf": {
+            "$hex": "30"
+          },
+          "sc": {
+            "verified_fc": 0,
+            "ext_nonce": true,
+            "key_id": 2,
+            "sec_level": 0
+          },
+          "counter": 110718,
+          "src64": {
+            "$hex": "6c5948fefff52e3c"
+          },
+          "mic": {
+            "$hex": "cf0984e4"
+          }
+        },
+        "cmd": {
+          "id": {
+            "$hex": "05"
+          },
+          "key_type": {
+            "$hex": "01"
+          },
+          "key": {
+            "$hex": "52f0fe8052ebb35907daa243c95a2ff4"
+          },
+          "seqno": 0,
+          "dst": {
+            "$hex": "7db023feffa7db28"
+          },
+          "src": {
+            "$hex": "6c5948fefff52e3c"
+          }
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "f5e5"
+    }
+  }
+}

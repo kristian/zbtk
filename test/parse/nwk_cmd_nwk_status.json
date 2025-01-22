@@ -1,0 +1,107 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 197,
+  "time": {
+    "$hex": "d84f7231aa4ca4f5"
+  },
+  "seqno": 781534,
+  "length": 57,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 77,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "1532"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "091a"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": true,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "0000"
+      },
+      "src": {
+        "$hex": "d63e"
+      },
+      "radius": 30,
+      "seqno": 13,
+      "dst64": {
+        "$hex": "6c5948fefff52e3c"
+      },
+      "src64": {
+        "$hex": "5db1000000ee1f00"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 7528497,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "5dc22542"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "03"
+        },
+        "status": {
+          "$hex": "06"
+        },
+        "route": {
+          "dest": {
+            "$hex": "f00d"
+          }
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "feeb"
+    }
+  }
+}

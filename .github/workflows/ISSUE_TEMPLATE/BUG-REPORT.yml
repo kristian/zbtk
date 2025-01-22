@@ -1,0 +1,40 @@
+name: "Bug Report"
+description: Create a new issue for a bug.
+title: "<title>"
+labels: [
+  "bug"
+]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: Please enter an explicit description of your issue
+      placeholder: Short and explicit description of your issue...
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: "Tool"
+      description: Which tool did the issue occur for ?
+      multiple: true
+      options:
+        - cap.js / Packet Capture
+        - cluster.js / Cluster Library
+        - crypto.js / Encrypt / Decrypt
+        - format.js / Format Data
+        - hash.js / Hashing Functions
+        - ic.js / Install Code Utilities
+        - parse.js / Packet Parser
+        - type.js / Determine Packet Type
+    validations:
+      required: false
+  - type: textarea
+    id: data
+    attributes:
+      label: "Data"
+      description: Please provide the data that you used as an input, e.g. the ZEP packet data to validate the issue
+      placeholder: Input data, e.g. the ZEP HEX packet data
+    validations:
+      required: false

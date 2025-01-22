@@ -1,0 +1,130 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 121,
+  "time": {
+    "$hex": "d84f21671fcf3dc1"
+  },
+  "seqno": 1930835,
+  "length": 65,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 90,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "d63e"
+    },
+    "src16": {
+      "$hex": "607a"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0812"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "fdff"
+      },
+      "src": {
+        "$hex": "607a"
+      },
+      "radius": 30,
+      "seqno": 208,
+      "src64": {
+        "$hex": "7db023feffa7db28"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 167936,
+        "src64": {
+          "$hex": "7db023feffa7db28"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "8100a4bc"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "08"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": false,
+          "security": false,
+          "delivery": 2,
+          "ack_format": false,
+          "type": 0
+        },
+        "dst": 0,
+        "cluster": {
+          "$hex": "1300"
+        },
+        "profile": {
+          "$hex": "0000"
+        },
+        "src": 0,
+        "counter": 252,
+        "zbee_zdp": {
+          "seqno": 129,
+          "nwk_addr": {
+            "$hex": "607a"
+          },
+          "ext_addr": {
+            "$hex": "7db023feffa7db28"
+          },
+          "cinfo": {
+            "alloc": true,
+            "security": false,
+            "idle_rx": false,
+            "power": false,
+            "fdd": false,
+            "alt_coord": false
+          }
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "0ed9"
+    }
+  }
+}

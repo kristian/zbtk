@@ -1,0 +1,107 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 68,
+  "time": {
+    "$hex": "d84f216750678c01"
+  },
+  "seqno": 1930845,
+  "length": 56,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 199,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "607a"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "091a"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": true,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "607a"
+      },
+      "src": {
+        "$hex": "d63e"
+      },
+      "radius": 1,
+      "seqno": 191,
+      "dst64": {
+        "$hex": "7db023feffa7db28"
+      },
+      "src64": {
+        "$hex": "5db1000000ee1f00"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 9311883,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "eb3d21d0"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "0c"
+        },
+        "status": {
+          "$hex": "00"
+        },
+        "ed_prnt_info": {
+          "power_negotiation_supported": false,
+          "ed_tmo_req_keepalive": true,
+          "mac_data_poll_keepalive": true
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "eed9"
+    }
+  }
+}

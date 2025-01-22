@@ -1,0 +1,83 @@
+{
+  "name": "zbtk",
+  "version": "1.0.0",
+  "description": "ZigBee Toolkit for Node.js",
+  "keywords": [
+    "zigbee",
+    "zb",
+    "zbee",
+    "zcl",
+    "toolkit",
+    "tools",
+    "parse",
+    "parser",
+    "packet",
+    "cap",
+    "capture",
+    "wireshark",
+    "encrypt",
+    "decrypt",
+    "cli",
+    "console"
+  ],
+  "type": "module",
+  "bin": "./cli.js",
+  "exports": {
+    ".": "./tools.js",
+    "./utils": "./utils.js",
+    "./cap": "./cap.js",
+    "./cluster": "./cluster.js",
+    "./crypto": "./crypto.js",
+    "./format": "./format.js",
+    "./hash": "./hash.js",
+    "./ic": "./ic.js",
+    "./parse": "./parse.js",
+    "./type": "./type.js"
+  },
+  "files": [
+    "*.js",
+    "!test.js",
+    "!eslint.config.js",
+    "!examples/**",
+    "!local/**",
+    "!.yarn/**"
+  ],
+  "scripts": {
+    "test": "ava",
+    "lint": "eslint"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "author": {
+    "name": "Kristian Kraljic",
+    "email": "kris@kra.lc",
+    "url": "https://kra.lc/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kristian/zbtk.git"
+  },
+  "homepage": "https://github.com/kristian/zbtk",
+  "bugs": {
+    "url": "https://github.com/kristian/zbtk/issues"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "binary-parser-encoder-bump": "^2.2.1",
+    "cap": "^0.2.1",
+    "es-main": "^1.3.0",
+    "mqtt": "^5.10.3",
+    "traverse": "^0.6.11",
+    "whence": "^2.0.2",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^3.1.0",
+    "ava": "^6.2.0",
+    "eslint": "^9.20.1",
+    "eslint-plugin-jsdoc": "^50.6.3",
+    "glob": "^11.0.1"
+  },
+  "packageManager": "yarn@4.6.0"
+}

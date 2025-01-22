@@ -1,0 +1,29 @@
+{
+  "cSpell.ignorePaths": [
+    "package-lock.json",
+    "node_modules",
+    "vscode-extension",
+    ".git/{info,lfs,logs,refs,objects}/**",
+    ".git/{index,*refs,*HEAD}",
+    ".vscode",
+    ".vscode-insiders",
+    "**/*.hex"
+  ],
+  "search.exclude": {
+    "**/.yarn": true,
+    "**/.pnp.*": true
+  },
+  "eslint.nodePath": ".yarn/sdks",
+
+  "cSpell.words": [
+    "CCITT",
+    "FIPS",
+    "Matyas-Meyer-Oseas",
+    "Ubisys",
+    "Viessmann",
+    "WPAN",
+    "ZBEE",
+    "ZBIC",
+    "ZBTK"
+  ],
+}

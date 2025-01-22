@@ -1,0 +1,70 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 134,
+  "time": {
+    "$hex": "d84f0cd1c0b24208"
+  },
+  "seqno": 575185,
+  "length": 28,
+  "wpan": {
+    "fcf": {
+      "$hex": "0080"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": false,
+      "ack_request": false,
+      "pending": false,
+      "security": false,
+      "type": 0,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 0,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 46,
+    "src_pan": {
+      "$hex": "de8c"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "assoc_permit": true,
+    "bcn_coord": true,
+    "battery_ext": true,
+    "cap": 15,
+    "superframe_order": 8,
+    "beacon_order": 15,
+    "gts": {
+      "$hex": "0000"
+    },
+    "zbee_beacon": {
+      "protocol": {
+        "$hex": "00"
+      },
+      "end_dev": false,
+      "depth": 4,
+      "router": false,
+      "version": 10,
+      "profile": 3,
+      "ext_panid": {
+        "$hex": "d5aa3d1344830d11"
+      },
+      "tx_offset": {
+        "$hex": "ffffff"
+      },
+      "update_id": {
+        "$hex": "00"
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "f5e5"
+    }
+  }
+}

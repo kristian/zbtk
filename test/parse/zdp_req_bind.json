@@ -1,0 +1,137 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 106,
+  "time": {
+    "$hex": "d84f4df3c900c522"
+  },
+  "seqno": 2030335,
+  "length": 71,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 28,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "2720"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0806"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": false,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": true,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "2720"
+      },
+      "src": {
+        "$hex": "0000"
+      },
+      "radius": 29,
+      "seqno": 111,
+      "relay": {
+        "count": 1,
+        "index": 0,
+        "relay": [
+          {
+            "$hex": "d63e"
+          }
+        ]
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 9320764,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "84047d55"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "40"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": true,
+          "ack_format": false,
+          "security": false,
+          "delivery": 0,
+          "type": 0
+        },
+        "dst": 0,
+        "cluster": {
+          "$hex": "2100"
+        },
+        "profile": {
+          "$hex": "0000"
+        },
+        "src": 0,
+        "counter": 40,
+        "zbee_zdp": {
+          "seqno": 51,
+          "src64": {
+            "$hex": "7db023feffa7db28"
+          },
+          "src_ep": 1,
+          "cluster": {
+            "$hex": "0000"
+          },
+          "addr_mode": {
+            "$hex": "03"
+          },
+          "dst64": {
+            "$hex": "6c5948fefff52e3c"
+          },
+          "dst_ep": 2
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "eee3"
+    }
+  },
+  "$type": "ZDP_REQ_BIND"
+}

@@ -1,0 +1,114 @@
+{
+  "$type": "APS_DATA",
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 116,
+  "time": {
+    "$hex": "d84f730587c52610"
+  },
+  "seqno": 784053,
+  "length": 57,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 14,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "1532"
+    },
+    "src16": {
+      "$hex": "cd93"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0822"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": true,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "0000"
+      },
+      "src": {
+        "$hex": "cd93"
+      },
+      "radius": 30,
+      "seqno": 222,
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 480249,
+        "src64": {
+          "$hex": "ca8b90feff7ee0e8"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "2cdf7970"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "40"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": true,
+          "ack_format": false,
+          "security": false,
+          "delivery": 0,
+          "type": 0
+        },
+        "dst": 1,
+        "cluster": {
+          "$hex": "1900"
+        },
+        "profile": {
+          "$hex": "0401"
+        },
+        "src": 1,
+        "counter": 127,
+        "data": {
+          "$hex": "017701002112000006020000"
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "eae8"
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 41,
+  "time": {
+    "$hex": "d84f4898ebf9830f"
+  },
+  "seqno": 692648,
+  "length": 53,
+  "wpan": {
+    "fcf": {
+      "$hex": "4188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": false,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 125,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "ffff"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0912"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "fcff"
+      },
+      "src": {
+        "$hex": "d63e"
+      },
+      "radius": 1,
+      "seqno": 7,
+      "src64": {
+        "$hex": "5db1000000ee1f00"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 7519296,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "7a27cbe8"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "08"
+        },
+        "link": {
+          "last": true,
+          "first": true,
+          "count": 2,
+          "items": [
+            {
+              "address": {
+                "$hex": "0000"
+              },
+              "outgoing_cost": 1,
+              "incoming_cost": 3
+            },
+            {
+              "address": {
+                "$hex": "1532"
+              },
+              "outgoing_cost": 1,
+              "incoming_cost": 1
+            }
+          ]
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "fecb"
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 119,
+  "time": {
+    "$hex": "d84f0cacdb4bb5e1"
+  },
+  "seqno": 930,
+  "length": 57,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 59,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "2720"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "091a"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": true,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "2720"
+      },
+      "src": {
+        "$hex": "d63e"
+      },
+      "radius": 1,
+      "seqno": 222,
+      "dst64": {
+        "$hex": "7db023feffa7db28"
+      },
+      "src64": {
+        "$hex": "5db1000000ee1f00"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 9329708,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "fb5a1d6c"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "07"
+        },
+        "addr": {
+          "$hex": "2720"
+        },
+        "status": {
+          "$hex": "00"
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "f3e3"
+    }
+  },
+  "$type": "NWK_CMD_REJOIN_RSP"
+}

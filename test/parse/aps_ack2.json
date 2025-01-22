@@ -1,0 +1,103 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 88,
+  "time": {
+    "$hex": "d84f0ca0a44523f7"
+  },
+  "seqno": 614,
+  "length": 39,
+  "wpan": {
+    "fcf": {
+      "$hex": "7188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": true,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 125,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "2720"
+    },
+    "src16": {
+      "$hex": "0000"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0802"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": false,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "2720"
+      },
+      "src": {
+        "$hex": "0000"
+      },
+      "radius": 30,
+      "seqno": 20,
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 9306501,
+        "src64": {
+          "$hex": "6c5948fefff52e3c"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "6adbd168"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "12"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": false,
+          "security": false,
+          "delivery": 0,
+          "ack_format": true,
+          "type": 2
+        },
+        "counter": 29
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "e7e3"
+    }
+  },
+  "$type": "APS_ACK"
+}

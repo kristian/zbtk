@@ -1,0 +1,218 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 121,
+  "time": {
+    "$hex": "d84f2169d2556d1a"
+  },
+  "seqno": 1930967,
+  "length": 82,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 109,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "d63e"
+    },
+    "src16": {
+      "$hex": "607a"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "4822"
+      },
+      "fc": {
+        "discovery": 1,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": true,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "0000"
+      },
+      "src": {
+        "$hex": "607a"
+      },
+      "radius": 30,
+      "seqno": 220,
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 167944,
+        "src64": {
+          "$hex": "7db023feffa7db28"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "6e38f2a6"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "40"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": true,
+          "ack_format": false,
+          "security": false,
+          "delivery": 0,
+          "type": 0
+        },
+        "dst": 2,
+        "cluster": {
+          "$hex": "0000"
+        },
+        "profile": {
+          "$hex": "0401"
+        },
+        "src": 1,
+        "counter": 0,
+        "zbee_zcl": {
+          "fcf": {
+            "$hex": "08"
+          },
+          "fc": {
+            "ddr": false,
+            "dir": 1,
+            "ms": false,
+            "type": 0
+          },
+          "cmd": {
+            "tsn": 0,
+            "id": {
+              "$hex": "0d"
+            }
+          },
+          "attrs": [
+            {
+              "attr_id": {
+                "$hex": "0000"
+              },
+              "type": {
+                "$hex": "20"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0100"
+              },
+              "type": {
+                "$hex": "20"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0200"
+              },
+              "type": {
+                "$hex": "20"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0300"
+              },
+              "type": {
+                "$hex": "20"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0400"
+              },
+              "type": {
+                "$hex": "42"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0500"
+              },
+              "type": {
+                "$hex": "42"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0600"
+              },
+              "type": {
+                "$hex": "42"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0700"
+              },
+              "type": {
+                "$hex": "30"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "1000"
+              },
+              "type": {
+                "$hex": "42"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "0040"
+              },
+              "type": {
+                "$hex": "42"
+              }
+            },
+            {
+              "attr_id": {
+                "$hex": "fdff"
+              },
+              "type": {
+                "$hex": "21"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "0ed9"
+    }
+  },
+  "$type": "ZCL_CMD_DISCOVER_ATTR_RSP"
+}

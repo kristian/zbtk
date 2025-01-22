@@ -1,0 +1,121 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 77,
+  "time": {
+    "$hex": "d84f31e3e1ea3594"
+  },
+  "seqno": 792014,
+  "length": 77,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 169,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "d63e"
+    },
+    "src16": {
+      "$hex": "0000"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "091a"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": true,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "d63e"
+      },
+      "src": {
+        "$hex": "0000"
+      },
+      "radius": 30,
+      "seqno": 174,
+      "dst64": {
+        "$hex": "5db1000000ee1f00"
+      },
+      "src64": {
+        "$hex": "6c5948fefff52e3c"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 9380920,
+        "src64": {
+          "$hex": "6c5948fefff52e3c"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "e904fab1"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "02"
+        },
+        "opts": {
+          "mcast": false,
+          "resp_ext": true,
+          "orig_ext": true
+        },
+        "route": {
+          "id": 1,
+          "orig": {
+            "$hex": "6ba9"
+          },
+          "resp": {
+            "$hex": "0000"
+          },
+          "cost": 3,
+          "orig_ext": {
+            "$hex": "7db023feffa7db28"
+          },
+          "resp_ext": {
+            "$hex": "6c5948fefff52e3c"
+          }
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "e8df"
+    }
+  },
+  "$type": "NWK_CMD_ROUTE_REPLY"
+}

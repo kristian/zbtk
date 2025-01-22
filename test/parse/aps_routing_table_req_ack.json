@@ -1,0 +1,111 @@
+{
+  "$type": "APS_ACK",
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 190,
+  "time": {
+    "$hex": "d84f7894b021d10c"
+  },
+  "seqno": 797062,
+  "length": 45,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 118,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "1532"
+    },
+    "src16": {
+      "$hex": "d63e"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "4802"
+      },
+      "fc": {
+        "discovery": 1,
+        "proto_version": 2,
+        "type": 0,
+        "end_device_initiator": false,
+        "ext_src": false,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "0000"
+      },
+      "src": {
+        "$hex": "d63e"
+      },
+      "radius": 30,
+      "seqno": 176,
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 7530101,
+        "src64": {
+          "$hex": "5db1000000ee1f00"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "c2a51c1b"
+        }
+      },
+      "zbee_aps": {
+        "fcf": {
+          "$hex": "02"
+        },
+        "fc": {
+          "ext_header": false,
+          "ack_req": false,
+          "security": false,
+          "delivery": 0,
+          "ack_format": false,
+          "type": 2
+        },
+        "dst": 0,
+        "cluster": {
+          "$hex": "3200"
+        },
+        "profile": {
+          "$hex": "0000"
+        },
+        "src": 0,
+        "counter": 53
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "feea"
+    }
+  }
+}

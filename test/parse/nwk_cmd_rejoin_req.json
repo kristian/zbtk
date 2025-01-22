@@ -1,0 +1,105 @@
+{
+  "protocol_id": "EX",
+  "version": 2,
+  "type": 1,
+  "channel_id": 19,
+  "device_id": 65534,
+  "lqi_mode": 0,
+  "lqi": 172,
+  "time": {
+    "$hex": "d84f31e5f21815a1"
+  },
+  "seqno": 792112,
+  "length": 47,
+  "wpan": {
+    "fcf": {
+      "$hex": "6188"
+    },
+    "fc": {
+      "reserved": false,
+      "pan_id_compression": true,
+      "ack_request": true,
+      "pending": false,
+      "security": false,
+      "type": 1,
+      "src_addr_mode": 2,
+      "version": 0,
+      "dst_addr_mode": 2,
+      "ie_present": false,
+      "seqno_suppression": false
+    },
+    "seq_no": 41,
+    "dst_pan": {
+      "$hex": "de8c"
+    },
+    "dst16": {
+      "$hex": "1532"
+    },
+    "src16": {
+      "$hex": "6ba9"
+    },
+    "zbee_nwk": {
+      "fcf": {
+        "$hex": "0912"
+      },
+      "fc": {
+        "discovery": 0,
+        "proto_version": 2,
+        "type": 1,
+        "end_device_initiator": false,
+        "ext_src": true,
+        "ext_dst": false,
+        "src_route": false,
+        "security": true,
+        "multicast": false
+      },
+      "dst": {
+        "$hex": "1532"
+      },
+      "src": {
+        "$hex": "6ba9"
+      },
+      "radius": 1,
+      "seqno": 231,
+      "src64": {
+        "$hex": "7db023feffa7db28"
+      },
+      "sec": {
+        "scf": {
+          "$hex": "28"
+        },
+        "sc": {
+          "verified_fc": 0,
+          "ext_nonce": true,
+          "key_id": 1,
+          "sec_level": 0
+        },
+        "counter": 196737,
+        "src64": {
+          "$hex": "7db023feffa7db28"
+        },
+        "key_seqno": 0,
+        "mic": {
+          "$hex": "daf07c76"
+        }
+      },
+      "cmd": {
+        "id": {
+          "$hex": "06"
+        },
+        "cinfo": {
+          "alloc": true,
+          "security": false,
+          "idle_rx": false,
+          "power": false,
+          "fdd": false,
+          "alt_coord": false
+        }
+      }
+    },
+    "ti_cc24xx_metadata": {
+      "$hex": "14df"
+    }
+  },
+  "$type": "NWK_CMD_REJOIN_REQ"
+}
