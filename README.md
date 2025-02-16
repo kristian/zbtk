@@ -1,5 +1,7 @@
 # NodeJS ZigBee Toolkit / CLI (ZBTK)
 
+[![Test](https://github.com/kristian/zbtk/actions/workflows/test.yml/badge.svg)](https://github.com/kristian/zbtk/actions/workflows/test.yml) [![Lint](https://github.com/kristian/zbtk/actions/workflows/lint.yml/badge.svg)](https://github.com/kristian/zbtk/actions/workflows/lint.yml) [![Issues](https://img.shields.io/github/issues/kristian/zbtk)](https://github.com/kristian/zbtk/issues) [![NPM Version](https://img.shields.io/npm/v/zbtk)](https://www.npmjs.com/package/zbtk)
+
 A NodeJS based ZigBee Toolkit & Command Line Interface (CLI) for general use.
 
 ### Really?! "Yet another ZigBee Library"?
