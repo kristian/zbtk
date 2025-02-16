@@ -18,6 +18,20 @@ With this toolkit I wanted to provide an easy to grasp pseudo-reference (aka "as
 
 ## Installation
 
+### Prerequisites
+
+The toolkit / packet capture [`cap.js`](#zbtk-cap) requires a local PCAP (Packet Capture) library / binding:
+
+- For Linux / Unix install `libpcap` and `libpcap-dev`/`libpcap-devel`, e.g. on Ubuntu / Debian:
+
+```bash
+sudo apt-get update && sudo apt-get install -y libpcap-dev
+```
+
+- On Windows, we recommend [Npcap with WinPcap compatibility](https://npcap.com/#download)
+
+### Download / Install Toolkit
+
 Install globally to use ZigBee Toolkit CLI:
 
 ```bash
