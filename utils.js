@@ -239,6 +239,14 @@ if (esMain(import.meta)) {
     .command('readme', 'Update README.md', async argv => {
       let readme = await fs.readFile('README.md', 'utf-8');
 
+      // update table of contents (TOC)
+      console.log('Updating table of contents in README.md');
+      readme = readme.replace(/(?<=<!-- toctools -->)[\s\S]*(?=<!-- toctoolsend -->)/,
+        Array.from(readme.matchAll(/### <a id='(.*)'><\/a>\[`(.*)`\]\(.*\) (.*)/g))
+          .map(match => `\n  * [\`${match[2]}\` ${match[3]}](#${match[1]})`).join('')
+      );
+
+      // grab command help outputs from CLI
       const commands = {};
       for (const match of readme.matchAll(/```bash\nzbtk ([^<\[\n]*) ?/g)) {
         const command = match[1];
@@ -249,6 +257,7 @@ if (esMain(import.meta)) {
         commands[command] = await getCliOutput(`${command} --help`);
       }
 
+      // update CLI examples in README.md
       console.log('Updating CLI examples in README.md');
       await fs.writeFile('README.md', readme.replaceAll(
         /(?<=```bash\n)zbtk ([^<\[\n]*) ?[\s\S]*?(?=\n```)/g,

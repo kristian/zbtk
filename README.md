@@ -4,6 +4,23 @@
 
 A NodeJS based ZigBee Toolkit & Command Line Interface (CLI) for general use.
 
+## Table of Contents
+
+- [Installation](#Installationok)
+- [Usage / Tools in the Toolkit](#usage--tools-in-the-toolkit)<!-- toctools -->
+  * [`cap.js` Capture ](#zbtk-cap)
+  * [`cluster.js` Cluster Library Name and Attributes](#zbtk-cluster)
+  * [`crypto.js` Encrypt / Decrypt Frames](#zbtk-crypto)
+  * [`format.js` Format ICs / EUIs / ...](#zbtk-format)
+  * [`hash.js` Hash / Checksum Calculation](#zbtk-hash)
+  * [`ic.js` Install Code Utilities](#zbtk-ic)
+  * [`parse.js` Packet Binary Parser](#zbtk-parse)
+  * [`type.js` Determine Packet Type](#zbtk-type)<!-- toctoolsend -->
+- [Application Examples](#application-examples)
+- [Author](#author)
+- [Bugs](#bugs)
+- [License](#license)
+
 ### Really?! "Yet another ZigBee Library"?
 
 When I started exploring ZigBee, my general understanding was that ZigBee is an open standard. So finding my way into the inner workings should be as easy as reading up on a couple of specification documents. Soon it turned out that except [a few][1], [notable][2], [exceptions][3], usable information about the standard and especially reference implementations of it's (cryptographic) algorithms is scattered far and sparse. A lot of information is being held back behind the "being or becoming a [member of the ZigBee alliance](https://csa-iot.org/become-member/)" paywall.
