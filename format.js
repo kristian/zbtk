@@ -20,6 +20,8 @@ export function ic(ic, reverse) {
       ((index % 2 === 1 && index !== ic.length - 1) ? ' ' : ''), '');
 }
 
+const euiSep = { toString: () => (process.env.ZBTK_FORMAT_EUI_SEPARATOR || ':').toString()[0] };
+
 /**
  * As per IEEE specification the EUI(64)s are represented as hexadecimals
  * tuples of 2, separated by colons or dashes, e.g.:
@@ -31,10 +33,10 @@ export function ic(ic, reverse) {
  * @param {boolean} [reverse] whether to reverse the endianess, e.g. when reading from a ZigBee packet to display
  * @returns {string} the formatted EUI(64)
  */
-export function eui(eui, sep = (process.env.ZBTK_FORMAT_EUI_SEPARATOR || ':').toString()[0], reverse) {
+export function eui(eui, sep = `${euiSep}`, reverse) {
   if (typeof sep === 'boolean') {
     reverse = sep;
-    sep = euiSep;
+    sep = `${euiSep}`;
   }
 
   return Array.from(reverse ? reverseEndian(eui) : eui)

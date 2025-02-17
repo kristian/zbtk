@@ -150,7 +150,7 @@ export async function open(device, options) {
               params = ['Unknown error occurred'];
             }
 
-            const err = params.pop();
+            let err = params.pop();
             if (!(err instanceof Error)) {
               if (!params.length) {
                 err = new Error(err);
