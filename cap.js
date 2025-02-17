@@ -332,7 +332,7 @@ export async function open(device, options) {
           eventEmitter.emit('attribute', attr, context);
           if (mqtt) {
             try {
-              await mqttClient.publishAsync(`${mqttTopic} / ${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${hexAttr.id}`,
+              await mqttClient.publishAsync(`${mqttTopic}/${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${hexAttr.id}`,
                 Buffer.isBuffer(attr.value) ? attr.value : `${attr.value}`);
             } catch (err) {
               logger.error(err, 'MQTT publish attribute failed');
