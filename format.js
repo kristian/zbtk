@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { reverseEndian } from './utils.js';
+import { reverseEndian, fromHex } from './utils.js';
 
 /**
  * As per ZigBee specification [1] the install codes are represented
