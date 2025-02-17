@@ -50,6 +50,7 @@ export default { open };
  * @param {object} [options.out.mqtt] the MQTT output options
  * @param {string} [options.out.mqtt.url] the MQTT broker URL
  * @param {object} [options.out.mqtt.options] the MQTT connection options
+ * @param {object} [options.out.mqtt.client] the MQTT client instead of creating a new one. attention: calling close() will *not* close this client
  * @param {string} [options.out.mqtt.topic='zbtk'] the MQTT topic to publish the packets to
  * @param {number} [options.bufferSize=10485760] the buffer size to use for packet capture
  * @returns {Promise<EventEmitter>} a promise to an event emitter (with an additional close method), emitting events of 'options.emit' and 'error' events
@@ -58,7 +59,7 @@ export async function open(device, options) {
   let mqttClient, mqttTopic;
   const mqtt = options?.out?.mqtt;
   if (mqtt) {
-    mqttClient = await mqttConnect(
+    mqttClient = mqtt.client || await mqttConnect(
       mqtt.url, mqtt.options);
     mqttTopic = mqtt.topic || 'zbtk';
   }
@@ -121,7 +122,7 @@ export async function open(device, options) {
       cap.close();
     } finally {
       // close the MQTT client in any case
-      if (mqttClient) {
+      if (!mqtt.client && mqttClient) {
         await mqttClient.end();
       }
     }
