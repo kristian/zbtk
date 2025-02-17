@@ -1,0 +1,43 @@
+name: "General Issue"
+description: Create a new issue, i.e. a bug / feature request / question / etc.
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "Add a description"
+      placeholder: Short and explicit description of your issue
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: "Specify the tool"
+      description: Which tool of the toolkit did the issue occur for?
+      multiple: true
+      options:
+        - cap.js / Packet Capture
+        - cluster.js / Cluster Library
+        - crypto.js / Encrypt / Decrypt
+        - format.js / Format Data
+        - hash.js / Hashing Functions
+        - ic.js / Install Code Utilities
+        - parse.js / Packet Parser
+        - type.js / Determine Packet Type
+    validations:
+      required: false
+  - type: textarea
+    id: mre
+    attributes:
+      label: "Provide an example"
+      description: Please provide a [minimum reproducible example](https://en.wikipedia.org/wiki/Minimal_reproducible_example) to help us understand the issue
+      placeholder: Example
+    validations:
+      required: false
+  - type: textarea
+    id: data
+    attributes:
+      label: "Send us the packet / input data"
+      description: Please provide the data that you used as an input, e.g. the packet data to validate the issue
+      placeholder: Input data
+    validations:
+      required: false
