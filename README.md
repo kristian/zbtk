@@ -23,9 +23,9 @@ A NodeJS based ZigBee Toolkit & Command Line Interface (CLI) for general use.
 
 ### Really?! "Yet another ZigBee Library"?
 
-When I started exploring ZigBee, my general understanding was that ZigBee is an open standard. So finding my way into the inner workings should be as easy as reading up on a couple of specification documents. Soon it turned out that except [a few][1], [notable][2], [exceptions][3], usable information about the standard and especially reference implementations of it's (cryptographic) algorithms is scattered far and sparse. A lot of information is being held back behind the "being or becoming a [member of the ZigBee alliance](https://csa-iot.org/become-member/)" paywall.
+When I started exploring ZigBee, my general understanding was that ZigBee is an open standard. So finding my way into the inner workings should have been as easy as reading up on a couple of specification documents. Soon it turned out that except [a few][1], [notable][2], [exceptions][3], coherent information about the standard and especially reference implementations of its (cryptographic) algorithms was scattered far and sparse. A lot of information seems to be held back behind the "being or becoming a [member of the ZigBee alliance](https://csa-iot.org/become-member/)" paywall.
 
-With this toolkit I wanted to provide an easy to grasp pseudo-reference (aka "as far as my understanding goes") implementation of some of the algorithms defined in the ZigBee specification / standard, main referencing three documents, the [ZigBee][A], [ZigBee Base Device Behavior][B] and the [ZigBee Cluster Library][C] specifications. Other helpful documents (most notably by [Silicon Labs](https://www.silabs.com/)), can be found in the [`docs`](docs/) folder.
+With this toolkit I wanted to provide an easy to grasp pseudo-reference (aka "as far as my understanding goes") implementation of some of the algorithms defined in the ZigBee specification / standard, mainly referencing three documents, the [ZigBee][A], [ZigBee Base Device Behavior][B] and the [ZigBee Cluster Library][C] specifications. Other helpful documents (most notably by [Silicon Labs](https://www.silabs.com/)), can be found in the [`docs`](docs/) folder.
 
 [1]: https://github.com/osresearch/ZbPy/
 [2]: https://lucidar.me/en/zigbee/autopsy-of-a-zigbee-frame/
@@ -66,7 +66,7 @@ npx zbtk
 yarn dlx zbtk
 ```
 
-In case you want to use the API, add the packet to your project using your package manager of choice:
+In case you want to use the API, add the package to your project using your package manager of choice:
 
 ```bash
 # NPM
@@ -111,16 +111,17 @@ Options:
 
 ### <a id='zbtk-cap'></a>[`cap.js`](cap.js) Packet / Attribute (to MQTT) Capture 
 
-This tool is used to capture ZigBee packets using a (P)CAP compatible capture device, e.g. a [Ubisys IEEE 802.15.4 Wireshark USB Stick](https://www.ubisys.de/en/products/for-zigbee-product-developers/wireshark-usb-stick/) (see [supported capture devices](docs/supported-capture-devices.md)), optionally parsing the packet contents, decrypting the received packet with (pre-defined) network / install keys and publishing the packets and / or parsed attributes of the packets via the [`EventEmitter`](https://nodejs.org/api/events.html#class-eventemitter) interface and / or via MQTT to an external event stream.
+This tool is used to capture ZigBee packets using a (P)CAP compatible capture device, e.g. a [Ubisys IEEE 802.15.4 Wireshark USB Stick](https://www.ubisys.de/en/products/for-zigbee-product-developers/wireshark-usb-stick/) (see [supported capture devices](docs/supported-capture-devices.md)), optionally parsing the packet contents, decrypting the received packet with (pre-defined) Network Keys and publishing the packets and / or parsed attributes of the packets via the [`EventEmitter`](https://nodejs.org/api/events.html#class-eventemitter) interface and / or via MQTT to an external event stream.
 
 ```
 (P)CAP Network Interface -> ZBTK cap.js
   (-> parse (-> decrypt (-> extract attributes)))
+    (-> Console Log)
     (-> EventEmitter)
     (-> MQTT)
 ```
 
-The captured raw / binary packet content may be published / emitted, based on the `emit` options. Packet contents can be automatically parsed into an object model / structure. In case the content contains encrypted data, an attempt is made to decrypt the data with any pre-shared key provided. Attributes can be extracted from `WRITE`/`READ`/`REPORT` attribute(s) packets and forwarded to the eventing interface. This last feature is especially helpful to mimic a [ZigB
+The captured raw / binary packet data may be published / emitted, based on the `emit` options. Packet contents can be automatically parsed into an object model / structure. In case the content contains encrypted data, an attempt is made to decrypt the data with any pre-shared key provided. Attributes can be extracted from `WRITE`/`READ`/`REPORT` attribute(s) packets and forwarded to the eventing interface. This last feature is especially helpful to mimic a [ZigB
 ee2MQTT](https://www.zigbee2mqtt.io/)-style event stream for ZigBee networks that you don't want to replace the coordinator / bridge for. See the [application examples](#application-examples) for when this becomes useful.
 
 #### API Usage
@@ -151,7 +152,7 @@ const capSession = await openCap('device-id', {
 });
 ```
 
-Regardless of the `out` options, the returned `capSession` always acts as a `EventEmitter`, that emits all events of the `emit` array:
+The returned `capSession` acts as a `EventEmitter`, that emits all events of the `emit` array:
 
 ```js
 capSession.on('data', function(data, context) {
@@ -168,7 +169,7 @@ capSession.on('packet', function(packet, context) {
 });
 ```
 
-It emits the raw / binary packet contents as `Buffer` and / or parsed and / or decrypted packet as a `Object`, depending on what is set as `emit` options. By default the `capSession` emits any attributes captured via `WRITE`/`READ`/`REPORT` attribute(s) packets to:
+It emits the raw / binary packet contents as `Buffer` and / or parsed and / or decrypted packet as an `Object`. In case `attribute` is part of the `emit` option the `capSession` publishes all attributes captured from `WRITE`/`READ`/`REPORT` packets to:
 
 ```js
 capSession.on('attribute', function(attr, context) {
@@ -191,9 +192,9 @@ capSession.on('attribute', function(attr, context) {
 });
 ```
 
-In case `out.log` is set, emits are also print to `stdout` / console. `out.log` may include different options than `emit`, e.g. set `out.log` to `data` to print out the binary data of each packet to console, while emitting the parsed attributes to the eventing interface or MQTT if the `out.mqtt` option is set. Note that this doesn't work in reverse, i.e. you cannot `out.log` attributes, whilst only emitting the raw packet contents. Only the `emit` options determine if a packet is parsed / attributes are extracted or not.
+In case `out.log` is set, emits are also print to `stdout` / console. `out.log` may include different options than `emit`, e.g. set `out.log` to `data` to print out the binary data of each packet to console, while emitting the parsed attributes to the eventing interface or MQTT if the `out.mqtt` option is set. Note that the packet always gets parsed in case either `emit` or `out.log` contains `packet` or `attribute`, or in case a `filter` is set.
 
-To close the capture session, invoke the `.close()` function:
+To close the capture session any MQTT client created, invoke the `.close()` function:
 
 ```js
 await capSession.close();
@@ -247,7 +248,7 @@ To enable automatic decryption of packets, set the pre-configured keys for your 
 
 ### <a id='zbtk-cluster'></a>[`cluster.js`](cluster.js) Cluster Library Name and Attributes
 
-This tool provides information about clusters of the ZigBee Cluster Library according to its [specification document][C]. It will map a given Cluster ID to a human-readable name, as well as provide information about the clusters attributes in form of another map, between the Attribute ID and its human-readable name.
+This tool provides information about clusters of the ZigBee Cluster Library according to its [specification document][C]. It will map a given Cluster ID to a human-readable name, as well as provide information about the clusters attributes mapping the Attribute ID and its human-readable name.
 
 #### API Usage
 
@@ -283,9 +284,9 @@ Examples:
 
 This tool encrypts and decrypts ZigBee packet contents. According to the [ZigBee Cluster Library specification][C], the payload of ZigBee Network Layer (NWK) Data frames may be encrypted using an AES-based encryption scheme. To perform encryption and decryption, a so-called Network Key is required.
 
-The security level of a ZigBee network determines how this Network Key is handled. In some cases, a well-known key — one that is publicly available, shared, and never changing — is used for encryption and decryption. Alternatively, the key is exchanged dynamically between the ZigBee device, router, and network coordinator using a secure protocol. Multiple key exchange mechanisms exist.
+The security level of a ZigBee network determines how this Network Key is determined. In some cases, a well-known key — one that is publicly available, shared, and never changing — is used for encryption and decryption. Alternatively, the key is exchanged dynamically between the ZigBee device, router, and network coordinator using a secure protocol. Multiple key exchange mechanisms exist.
 
-In the most basic form, the well-known ZigBee transport key (also known as the "Trust Center link key" or the "ZigBeeAlliance09" key) is used to establish a secure connection, after which a randomly generated or custom transport key replaces it for all further communication. This ensures that only the initial key exchange relies on the well-known key.
+In the most basic form, the well-known ZigBee transport key (also known as the "Trust Center link key" or the `ZigBeeAlliance09` key) is used to establish a secure connection, after which a randomly generated or custom transport key replaces it for all further communication. This ensures that only the initial key exchange relies on the well-known key.
 
 For an additional layer of security, a devices Install Code can be used to generate a Temporary Link Key, which replaces the well-known transport key during the initial key exchange. This method is discussed and demonstrated in the [Application Examples](#application-examples) section.
 
@@ -299,7 +300,7 @@ For example take this full encrypted "Read Attributes Response" ZigBee Cluster L
 0020   f6 e8 2e 41 e2 4e 3a ea 20 11 51 f9 ec 56 9a
 ```
 
-The The 7th bit of the first two bytes (the so called frame control field `48 22`) indicate that the content is encrypted. In order to decrypt the packet we need:
+The 7th bit of the first two bytes (the so called frame control field `48 22`) indicate that the content is encrypted. In order to decrypt the packet we need:
 
 - We ignore the `00 00` (source address), `47 49` (target address), `1e` (radius) and `12` (sequence number) bytes
 - And take the security header starting with `28` (security control field), `ef a0 05 00` (frame counter), `2b d6 18 fe ff 27 87 04` (extended source address) and `00` (key sequence number)
@@ -341,7 +342,7 @@ decrypt(data, nk, src64, fc, scf, aad, mic).equals(Buffer.from('40020102040101ef
 // use encrypt(...) with the same parameterization, to encrypt the packet again
 ```
 
-In order to register pre-configured keys, i.e. well-known network keys, used in the [`parse.js`](#zbtk-parse) tool for decrypting network packets on the fly, use the `nk()` function:
+In order to register pre-configured keys, i.e. well-known network keys, used in the [`parse.js`](#zbtk-parse) tool for decrypting network packets on the fly, use the `pk()` function:
 
 ```js
 import { pks, pk } from 'zbtk/crypto';
@@ -550,23 +551,22 @@ Examples:
 
 ### <a id='zbtk-parse'></a>[`parse.js`](parse.js) Packet Binary Parser
 
-This tool provides a ZigBee binary packet parser (and encoder) functionality based on the awesome [`binary-parser`](https://github.com/keichi/binary-parser) library by [Keichi Takahashi](https://github.com/keichi). It converts a raw ZigBee packet into a object structure, whilst converting its properties, decrypting the packet if needed and parsing any attributes of the packet. The parsing format was inspired by the Wireshark structure. The tool supports parsing / encoding encapsulated:
+This tool provides a ZigBee binary packet parser (and *soon™* some encoder) functionality based on the awesome [`binary-parser`](https://github.com/keichi/binary-parser) library by [Keichi Takahashi](https://github.com/keichi). It converts a raw ZigBee packet into a object structure, whilst converting its properties, decrypting the packet if needed and parsing any attributes of the packet. The parsing format was inspired by the Wireshark structure. The tool supports parsing / encoding encapsulated:
 
 - ZigBee Encapsulation Protocol (`ZEP`) packets
 - Wireless Personal Area Network (`WPAN`) packets
 - ZigBee Network Layer (`ZBEE_NWK`) packets
-- ZigBee Command (`ZBEE_CMD`) packets
-- ZigBee Network Command (`ZBEE_NWK_CMD`) packets
 - ZigBee Application Support Sub-layer (`ZBEE_APS`) packets
 - ZigBee Cluster Library (`ZBEE_ZCL`) packets
+- ZigBee Device Profile (`ZBEE_ZDP`) packets
 
-The `parse.js` tool will automatically attempt decrypting encrypted ZigBee packets, in case keys have been pre-configured via the `ZBTK_CRYPTO_PKS` and `ZBTK_CRYPTO_WELL_KNOWN_PKS` environment variables or the [`crypto.js`](#zbtk-crypto) API. When parsing encrypted packets, `parse.js` will try to decrypt the packet with any of the provided pre-configured keys and validate the decryption using the decryption signature / message integrity code. In case no keys are pre-configured or no key leads to a successful decryption of the packet the unencrypted data is left in the packet, or in case the `ZBTK_PARSE_FAIL_DECRYPT` environment variable is set, fails the parsing.
+The `parse.js` tool will automatically attempt decrypting encrypted ZigBee packets, in case keys have been pre-configured via the `ZBTK_CRYPTO_PKS` and `ZBTK_CRYPTO_WELL_KNOWN_PKS` environment variables or the [`crypto.js`](#zbtk-crypto) API. When parsing encrypted packets, `parse.js` will try to decrypt the packet with any of the provided pre-configured keys and validate the decryption using the decryption signature / message integrity code (MIC). In case no keys are pre-configured or no key leads to a successful decryption of the packet the unencrypted data is left in the packet, or in case the `ZBTK_PARSE_FAIL_DECRYPT` environment variable is set, fails the parsing.
 
 > [!NOTE]
 > As per ZigBee specification parsed binary values / packet contents, such as `Buffer`, are always in little-endian encoding / notation. Other tools, such as [`cluster.js`](#zbtk-cluster) or whenever communicating data to an end-user, e.g. during [`cap.js`](#zbtk-cap) packet capture, values are converted into big-endian notation.
 
 > [!IMPORTANT]
-> Currently the packet parser currently *does not* claim specification completeness! Meaning that most parser features have been developed on a "come as you go" basis, not based on the vast ZigBee specification documentation. Depending on the type / contents of a packet, this may results in parsing / malformed packet errors. Parsed data can be easily compared using Wireshark. In case of any discrepancy / error, please raise an issue or pull request, including the raw `ZEP` packet content and to compare the parsed results. Please note that in case your packet is encrypted with a Network Key, you will need to provide the Network Key to the processor of the ticket, or provide information how to capture a similar packet / reproduce the issue in the local network of the processors network. We strongly **do not** recommend sharing your Network Key openly, as it would allow anyone to decrypt your networks traffic. Only provide your Network Key to people you trust.
+> Currently, the packet parser *does not* claim complete specification compliance! Meaning that most parser features have been developed on a 'come as you go' basis, not based on the extensive ZigBee specification documentation. Depending on the type / contents of a packet, this may results in parsing / malformed packet errors. Parsed data can be easily compared using Wireshark. In case of any discrepancy / error, please raise an issue or pull request, including the raw `ZEP` packet content and to compare the parsed results. Please note that in case your packet is encrypted with a Network Key, you will need to provide the Network Key to the processor of the ticket, or provide information how to capture a similar packet / reproduce the issue in the local network of the processors network. We strongly **do not** recommend sharing your Network Key openly, as it would allow anyone to decrypt your networks traffic. Only provide your Network Key to people you trust.
 
 #### API Usage
 
@@ -610,7 +610,7 @@ Examples:
 #### Environment Variables
 
 - See `ZBTK_CRYPTO_PKS` and `ZBTK_CRYPTO_WELL_KNOWN_PKS` of [`crypto.js`](#zbtk-crypto), to pre-configure keys for automatic packet decryption.
-- Set `ZBTK_PARSE_FAIL_DECRYPT` to raise an error in case an encrypted packet cannot be decrypted with the provided (or missing) pre-configured keys, instead of just logging a warning and keeping the raw data `Buffer` in teh packet.
+- Set `ZBTK_PARSE_FAIL_DECRYPT` to raise an error in case an encrypted packet cannot be decrypted with the provided (or missing) pre-configured keys, instead of just logging a warning and keeping the raw data `Buffer` in the packet.
 - Set `ZBTK_PARSE_KEEP_TEMP` to keep temporary / temporal values used for parsing the packet. This is helpful when debugging the packet parsing. Temporary fields are prefixed with a `$` dollar sign and are removed by default before the packet is returned from parsing.
 
 ### <a id='zbtk-type'></a>[`type.js`](type.js) Determine Packet Type
