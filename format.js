@@ -9,11 +9,15 @@ import { reverseEndian } from './utils.js';
  *
  * [1] ZigBee Device Behavior Specification, 10.1.1 Install Code format
  *
- * @param {Buffer} ic the Install Code (ic) to format
+ * @param {(Buffer|string)} ic the Install Code (ic) to format
  * @param {boolean} [reverse] whether to reverse the endianess, e.g. when reading from a ZigBee packet to display
  * @returns {string} the formatted Install Code
  */
 export function ic(ic, reverse) {
+  if (!Buffer.isBuffer(ic)) {
+    ic = fromHex(key);
+  }
+
   return Array.from(reverse ? reverseEndian(ic) : ic)
     .map(byte => byte.toString(16).padStart(2, '0').toUpperCase())
     .reduce((result, byte, index) => result + byte +
@@ -28,12 +32,15 @@ const euiSep = { toString: () => (process.env.ZBTK_FORMAT_EUI_SEPARATOR || ':').
  *
  * 00:0D:6F:00:00:00:00:01 or 00-0D-6F-00-00-00-00-01
  *
- * @param {Buffer} eui the EUI(64) to format
+ * @param {(Buffer|string)} eui the EUI(64) to format
  * @param {string} [sep=':'] the separator to use
  * @param {boolean} [reverse] whether to reverse the endianess, e.g. when reading from a ZigBee packet to display
  * @returns {string} the formatted EUI(64)
  */
 export function eui(eui, sep = `${euiSep}`, reverse) {
+  if (!Buffer.isBuffer(eui)) {
+    eui = fromHex(key);
+  }
   if (typeof sep === 'boolean') {
     reverse = sep;
     sep = `${euiSep}`;

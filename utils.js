@@ -37,7 +37,7 @@ const hexPrefix = getEnvVar('ZBTK_UTILS_HEX_PREFIX', '0x') || '';
 /**
  * Convert the given hex string to a Buffer.
  *
- * @param {string|Buffer} data hex string to convert
+ * @param {(string|Buffer)} data hex string to convert
  * @returns {Buffer} the data as a Buffer
  */
 export function fromHex(data) {

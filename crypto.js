@@ -13,7 +13,7 @@ export const pks = (!process.env.ZBTK_CRYPTO_WELL_KNOWN_PKS ? [] : [
 /**
  * Pre-configure a network key to be used for automatic decryption.
  *
- * @param {(string|Buffer)} key the key to pre-configure
+ * @param {(Buffer|string)} key the key to pre-configure
  * @returns {boolean} true if the key was added, false if it was already present
  */
 export function pk(key) {
