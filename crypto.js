@@ -9,7 +9,20 @@ export const pks = (!process.env.ZBTK_CRYPTO_WELL_KNOWN_PKS ? [] : [
   fromHex('D0:D1:D2:D3:D4:D5:D6:D7:D8:D9:DA:DB:DC:DD:DE:DF'), // Uncertified
   fromHex('5A:69:67:42:65:65:41:6C:6C:69:61:6E:63:65:30:39') // ZigBeeAlliance09
 ]).concat(!process.env.ZBTK_CRYPTO_PKS ? [] : process.env.ZBTK_CRYPTO_PKS.split('[,; ]').map(fromHex));
-export const pk = k => !pks.some(c => c.equals(k)) && pks.push(k);
+
+/**
+ * Pre-configure a network key to be used for automatic decryption.
+ *
+ * @param {(string|Buffer)} key the key to pre-configure
+ * @returns {boolean} true if the key was added, false if it was already present
+ */
+export function pk(key) {
+  if (!Buffer.isBuffer(key)) {
+    key = fromHex(key);
+  }
+
+  return !!(!pks.some(c => c.equals(key)) && pks.push(key));
+}
 
 function prepare(src64, fc, scf, aad) {
   if (!process.env.ZBTK_CRYPTO_NO_WIRE_WORKAROUND) {
