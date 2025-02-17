@@ -39,14 +39,14 @@ function populateAddressTable(eui, addr) {
 export default { open };
 
 /**
- * Open a capture device for packet capture and emit events of 'raw_packet', 'packet' and 'attribute' (and 'error') via the returned EventEmitter.
+ * Open a capture device for packet capture and emit events of 'data', 'packet' and 'attribute' (and 'error') via the returned EventEmitter.
  *
  * @param {string} device the device to open for capture
  * @param {object} [options] the capture options
- * @param {(string|string[])} [options.emit=['attribute']] the events to emit via the returned EventEmitter and MQTT in case MQTT options are supplied, either one of 'raw_packet', 'packet' and/or 'attribute', 'error' events always getting emitted from the returned EventEmitter regardless of the settings
+ * @param {(string|string[])} [options.emit=['attribute']] the events to emit via the returned EventEmitter and MQTT in case MQTT options are supplied, either one of 'data', 'packet' and/or 'attribute', 'error' events always getting emitted from the returned EventEmitter regardless of the settings
  * @param {string|object|function} [options.filter] the filter to apply to the packets, a eval-estree-expression expression (see https://github.com/jonschlinkert/eval-estree-expression?tab=readme-ov-file#examples), estree-compatible expression AST, or filter function
  * @param {object} [options.out] the output options
- * @param {(boolean|string|string[])} [options.out.log] the events to log, any 'raw_packet', 'packet' and / or 'attribute', additionally 'verbose', 'info', 'warn' or 'error' sets the log-level, default is 'info'. true to log all emitted events as well as enable 'info' logging, false to disable logging entirely
+ * @param {(boolean|string|string[])} [options.out.log] the events to log, any 'data', 'packet' and / or 'attribute', additionally 'verbose', 'info', 'warn' or 'error' sets the log-level, default is 'info'. true to log all emitted events as well as enable 'info' logging, false to disable logging entirely
  * @param {object} [options.out.mqtt] the MQTT output options
  * @param {string} [options.out.mqtt.url] the MQTT broker URL
  * @param {object} [options.out.mqtt.options] the MQTT connection options
@@ -69,8 +69,8 @@ export async function open(device, options) {
   } else if (typeof emit === 'string') {
     emit = [emit];
   }
-  if (!Array.isArray(emit) || (emit = emit.filter(name => ['raw_packet', 'packet', 'attribute'].includes(name))).length === 0) {
-    throw new TypeError('No valid events to emit, must be one or multiple of "raw_packet", "packet" or "attribute"');
+  if (!Array.isArray(emit) || (emit = emit.filter(name => ['data', 'packet', 'attribute'].includes(name))).length === 0) {
+    throw new TypeError('No valid events to emit, must be one or multiple of "data", "packet" or "attribute"');
   }
 
   let log = options?.out?.log;
@@ -212,16 +212,16 @@ export async function open(device, options) {
           }
         }
 
-        Object.assign(context, { packet, type: packetType });
+        Object.assign(context, { data, packet, type: packetType });
         if (filter && !(await filter(context))) {
           return;
         }
 
-        if (log.has('raw_packet')) {
+        if (log.has('data')) {
           console.log(data.toString('hex'), `(${packetType})`);
         }
-        if (emit.has('raw_packet')) {
-          eventEmitter.emit('raw_packet', data, context);
+        if (emit.has('data')) {
+          eventEmitter.emit('data', data, context);
           if (mqtt) {
             try {
               await mqttClient.publishAsync(mqttTopic, data);
@@ -364,14 +364,14 @@ export const command = {
       alias: 'e',
       desc: 'Events to emit to MQTT',
       type: 'array',
-      choices: ['raw_packet', 'packet', 'attribute'],
+      choices: ['data', 'packet', 'attribute'],
       default: ['attribute']
     })
     .option('log', {
       alias: 'l',
       desc: 'Log outputs, defaults "info", if no output MQTT also to "packet", --no-log to disable',
       type: 'array',
-      choices: [false, 'raw_packet', 'packet', 'attribute', 'info', 'warn', 'error', 'verbose']
+      choices: [false, 'data', 'packet', 'attribute', 'info', 'warn', 'error', 'verbose']
     })
     .option('filter', {
       alias: 'f',

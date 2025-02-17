@@ -7,9 +7,9 @@ import { open as openCap } from '../cap.js';
 
 const capSession = await openCap('device-id', {
   bufferSize: 10 * 1024 * 1024, // in bytes, defaults to 10 MB
-  emit: ['attribute'], // defaults to "attribute", one, multiple of: "raw_packet", "packet", "attribute"
+  emit: ['attribute'], // defaults to "attribute", one, multiple of: "data", "packet", "attribute"
   out: {
-    log: ['packet', 'warn', 'error'], // defaults to ['warn', 'error'], true to emit what in the emit array + warn and error, or array / string similar to emit
+    log: ['packet'], // defaults to ['info'], true to emit what in the emit array + info logging, or array / string similar to emit options
     mqtt: { // defaults to null
       url: 'mqtt://localhost:1883', // see https://www.npmjs.com/package/mqtt#connect url
       options: { // see https://www.npmjs.com/package/mqtt#connect options
@@ -20,3 +20,37 @@ const capSession = await openCap('device-id', {
     }
   }
 });
+
+capSession.on('data', function(data, context) {
+  // the raw / unparsed packet data, in case the packet was
+  // parsed (e.g. due to "packet" being set in the emit
+  // options), context already includes the parsed packet
+  const { packet, type } = context;
+});
+capSession.on('packet', function(packet, context) {
+  // parsed / decrypted in case "packet" is set in the emit
+  // options and decrypted in case of any pre-configured key
+  // matched to decrypt the packet contents. context includes:
+  const { data, type } = context;
+});
+
+capSession.on('attribute', function(attr, context) {
+  const {
+    id, // the 2-byte ID of the attribute in the cluster (in big-endian notation)
+    type, // the 2-byte type of the attribute
+    value // the parsed value (string, number, Buffer, ...)
+  } = attr;
+  // the context includes further information about the attribute:
+  const {
+    data, // the raw data buffer of the packet
+    packet, // the full parsed packet
+    type: packetType, // the packet type
+    eui, // the EUI-64 of the device this attribute was read from / written to
+    addr, // the internal network address of the device
+    cluster, // the ZigBee cluster ID of the attribute (in big-endian notation)
+    profile, // the ZigBee cluster profile of the attribute (in big-endian notation)
+    write // true in case the attribute was captured on a write packet to the device, otherwise was either a report / read attribute packet
+  } = context;
+});
+
+await capSession.close();

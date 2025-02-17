@@ -93,12 +93,13 @@ for (const name of Object.keys(tools)) {
 
 // make sure that all JavaScript examples in README.md are available in /examples
 const examples = Object.fromEntries(glob('examples/*.js').map(file => [basename(file), fs.readFileSync(file, 'utf8').trim()]));
-for (const match of readme.matchAll(/(?<=```(?:js|javascript)\n)[\s\S]*?(?=\n```)/g)) {
+for (const match of readme.matchAll(/(?<=```(?:js|javascript)\s*\n)[\s\S]*?(?=\n\s*```)/g)) {
   const js = match[0].replaceAll(/(?<=import .*? from ')zbtk\/([^']*)/g, '../$1.js');
 
   // check if the example is available in /examples
   test(`Example '${js.substring(0, 30)}...' in /examples`, t => {
-    Object.values(examples).some(fileJs => fileJs === js) ? t.pass() : t.fail();
+    !Object.values(examples).some(fileJs => fileJs.includes(js)) && console.log(js);
+    Object.values(examples).some(fileJs => fileJs.includes(js)) ? t.pass() : t.fail();
   });
 }
 

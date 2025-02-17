@@ -135,9 +135,9 @@ import { open as openCap } from 'zbtk/cap';
 
 const capSession = await openCap('device-id', {
   bufferSize: 10 * 1024 * 1024, // in bytes, defaults to 10 MB
-  emit: ['attribute'], // defaults to "attribute", one, multiple of: "raw_packet", "packet", "attribute"
+  emit: ['attribute'], // defaults to "attribute", one, multiple of: "data", "packet", "attribute"
   out: {
-    log: ['packet', 'warn', 'error'], // defaults to ['warn', 'error'], true to emit what in the emit array + warn and error, or array / string similar to emit
+    log: ['packet'], // defaults to ['info'], true to emit what in the emit array + info logging, or array / string similar to emit options
     mqtt: { // defaults to null
       url: 'mqtt://localhost:1883', // see https://www.npmjs.com/package/mqtt#connect url
       options: { // see https://www.npmjs.com/package/mqtt#connect options
@@ -150,35 +150,51 @@ const capSession = await openCap('device-id', {
 });
 ```
 
-Regardless of the `out` options, the returned `capSession` always acts as a `EventEmitter`:
+Regardless of the `out` options, the returned `capSession` always acts as a `EventEmitter`, that emits all events of the `emit` array:
 
-```js 
-capSession.on('packet', function(packet) {
-    // parsed / decrypted in case "packet" is set in the emit
-    // options and decrypted in case of any pre-configured key
-    // matched to decrypt the packet contents
+```js
+capSession.on('data', function(data, context) {
+  // the raw / unparsed packet data, in case the packet was
+  // parsed (e.g. due to "packet" being set in the emit
+  // options), context already includes the parsed packet
+  const { packet, type } = context;
+});
+capSession.on('packet', function(packet, context) {
+  // parsed / decrypted in case "packet" is set in the emit
+  // options and decrypted in case of any pre-configured key
+  // matched to decrypt the packet contents. context includes:
+  const { data, type } = context;
 });
 ```
 
 It emits the raw / binary packet contents as `Buffer` and / or parsed and / or decrypted packet as a `Object`, depending on what is set as `emit` options. By default the `capSession` emits any attributes captured via `WRITE`/`READ`/`REPORT` attribute(s) packets to:
 
-```js 
-capSession.on('attribute', function({ eui, addr, cluster, id, type, value, write } ) {
-    // eui: the EUI-64 of the device this attribute was read from / written to
-    // addr: the internal network address of the device
-    // cluster: the ZigBee cluster ID of the attribute
-    // id: the 2-byte ID of the attribute in the cluster
-    // type: the 2-byte type of the attribute
-    // value: the parsed value (string, number, Buffer, ...)
-    // write: true in case the attribute was captured on a write packet to the device, otherwise was either a report / read attribute packet
+```js
+capSession.on('attribute', function(attr, context) {
+  const {
+    id, // the 2-byte ID of the attribute in the cluster (in big-endian notation)
+    type, // the 2-byte type of the attribute
+    value // the parsed value (string, number, Buffer, ...)
+  } = attr;
+  // the context includes further information about the attribute:
+  const {
+    data, // the raw data buffer of the packet
+    packet, // the full parsed packet
+    type: packetType, // the packet type
+    eui, // the EUI-64 of the device this attribute was read from / written to
+    addr, // the internal network address of the device
+    cluster, // the ZigBee cluster ID of the attribute (in big-endian notation)
+    profile, // the ZigBee cluster profile of the attribute (in big-endian notation)
+    write // true in case the attribute was captured on a write packet to the device, otherwise was either a report / read attribute packet
+  } = context;
 });
 ```
 
-In case `out.log` is set, emits are also print to `stdout` / console. `out.log` may include different options than `emit`, e.g. set `out.log` to `raw_packet` to print out the binary data of each packet to console, while emitting the parsed attributes to the eventing interface or MQTT if the `out.mqtt` option is set. Note that this doesn't work in reverse, i.e. you cannot `out.log` attributes, whilst only emitting the raw packet contents. Only the `emit` options determine if a packet is parsed / attributes are extracted or not.
+In case `out.log` is set, emits are also print to `stdout` / console. `out.log` may include different options than `emit`, e.g. set `out.log` to `data` to print out the binary data of each packet to console, while emitting the parsed attributes to the eventing interface or MQTT if the `out.mqtt` option is set. Note that this doesn't work in reverse, i.e. you cannot `out.log` attributes, whilst only emitting the raw packet contents. Only the `emit` options determine if a packet is parsed / attributes are extracted or not.
 
 To close the capture session, invoke the `.close()` function:
 
-```js 
+```js
 await capSession.close();
 ```
 
@@ -196,10 +212,10 @@ Positionals:
 Options:
       --list-devices, --list                          List all available capture devices   [boolean]
   -e, --emit                                          Events to emit to MQTT
-                     [array] [choices: "raw_packet", "packet", "attribute"] [default: ["attribute"]]
+                           [array] [choices: "data", "packet", "attribute"] [default: ["attribute"]]
   -l, --log                                           Log outputs, defaults "info", if no output MQT
                                                       T also to "packet", --no-log to disable
-   [array] [choices: false, "raw_packet", "packet", "attribute", "info", "warn", "error", "verbose"]
+         [array] [choices: false, "data", "packet", "attribute", "info", "warn", "error", "verbose"]
   -f, --filter                                        Filter packets to emit / log (whence expressio
                                                       n)                                    [string]
   -h, --mqtt-host                                     MQTT broker host                      [string]
