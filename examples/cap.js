@@ -16,6 +16,7 @@ const capSession = await openCap('device-id', {
         username: 'user',
         password: 'pass'
       },
+      client: null, // as an alternative for providing out.mqtt.url, pass in the client to use, in case you would like to re-use an existing client
       topic: 'zbtk' // (base) topic to publish messages
     }
   }
