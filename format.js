@@ -15,7 +15,7 @@ import { reverseEndian, fromHex } from './utils.js';
  */
 export function ic(ic, reverse) {
   if (!Buffer.isBuffer(ic)) {
-    ic = fromHex(key);
+    ic = fromHex(ic);
   }
 
   return Array.from(reverse ? reverseEndian(ic) : ic)
@@ -39,7 +39,7 @@ const euiSep = { toString: () => (process.env.ZBTK_FORMAT_EUI_SEPARATOR || ':').
  */
 export function eui(eui, sep = `${euiSep}`, reverse) {
   if (!Buffer.isBuffer(eui)) {
-    eui = fromHex(key);
+    eui = fromHex(eui);
   }
   if (typeof sep === 'boolean') {
     reverse = sep;
