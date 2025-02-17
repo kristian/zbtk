@@ -2,7 +2,11 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
-## [1.0.0] - 2025-02-12
+## [1.1] - 2025-02-17
+
+Fixed events in `cap.js` tool, renamed `raw_packet` event to `data`.
+
+## [1.0] - 2025-02-16
 
 ### Initial Release
 
