@@ -1100,6 +1100,6 @@ export const command = {
     .version(false)
     .help(),
   handler: argv => {
-    process.stdout.write(`${parse(argv.data, argv.type)}`);
+    console.log(`${parse(argv.data, argv.type)}`);
   }
 };

@@ -194,7 +194,7 @@ export const commands = [
       .help(),
     handler: argv => {
       const { data, mic } = encrypt(argv.data, argv.nk, argv.src64, argv.fc, argv.scf, argv.aad, argv.mic);
-      process.stdout.write(`${data.toString('hex')}${mic.toString('hex')}`);
+      console.log(`${data.toString('hex')}${mic.toString('hex')}`);
     }
   },
   {
@@ -253,7 +253,7 @@ export const commands = [
       .version(false)
       .help(),
     handler: argv => {
-      process.stdout.write(decrypt(argv.data, argv.nk, argv.src64, argv.fc, argv.scf, argv.aad, argv.mic).toString('hex'));
+      console.log(decrypt(argv.data, argv.nk, argv.src64, argv.fc, argv.scf, argv.aad, argv.mic).toString('hex'));
     }
   }
 ];

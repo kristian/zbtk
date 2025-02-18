@@ -514,6 +514,6 @@ export const command = {
     .version(false)
     .help(),
   handler: argv => {
-    process.stdout.write(type(argv.data, argv.type));
+    console.log(type(argv.data, argv.type));
   }
 };

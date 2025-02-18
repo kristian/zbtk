@@ -195,10 +195,10 @@ export const command = {
       process.exit(1);
     }
 
-    process.stdout.write(cluster.name);
+    console.log(cluster.name);
     if (argv.attributes && cluster.attrs?.length) {
       for (const [id, name] of cluster.attrs) {
-        process.stdout.write(`\n  ${name} (0x${id.toString(16).padStart(4, '0')})`);
+        console.log(`  ${name} (0x${id.toString(16).padStart(4, '0')})`);
       }
     }
   }

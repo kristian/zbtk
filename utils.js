@@ -143,9 +143,8 @@ export function moduleHandler(module, name = () => 'default', args = 'data', for
   return out.toString();
 }) {
   return async argv => {
-    process.stdout.write(format(
-      (await import(module))[typeof name === 'string' ? (argv[name] || 'default') : name(argv)]
-        .apply(null, typeof args === 'string' ? [argv[args]] : args(argv)), argv));
+    console.log(format((await import(module))[typeof name === 'string' ? (argv[name] || 'default') : name(argv)]
+      .apply(null, typeof args === 'string' ? [argv[args]] : args(argv)), argv));
   };
 }
 
