@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [1.2] - 2025-02-18
+
+Switch from `process.stdout` to `console.log` for better readability on Unix-based operating systems.
+
 ## [1.1] - 2025-02-17
 
 Fixed events in `cap.js` tool, renamed `raw_packet` event to `data`.
