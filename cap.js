@@ -129,215 +129,222 @@ export async function open(device, options) {
   };
 
   cap.on('packet', async function() {
-    let ret = decoders.Ethernet(buffer);
-    if (ret.info.type === capProtocols.ETHERNET.IPV4) {
-      ret = decoders.IPV4(buffer, ret.offset);
+    const eth = decoders.Ethernet(buffer);
+    if (eth.info.type !== capProtocols.ETHERNET.IPV4) {
+      return;
+    }
 
-      if (ret.info.protocol === capProtocols.IP.UDP) {
-        ret = decoders.UDP(buffer, ret.offset);
-        const data = buffer.subarray(ret.offset, ret.offset + ret.info.length);
+    const ip = decoders.IPV4(buffer, eth.offset);
+    if (ip.info.protocol !== capProtocols.IP.UDP) {
+      return;
+    }
 
-        const context = { data };
-        const logger = {
-          verbose: logLevel >= 4 ? console.trace : () => {},
-          info: logLevel >= 3 ? console.log : () => {},
-          warn: logLevel >= 2 ? console.warn : () => {},
-          error: function(...params) {
-            if (!Array.isArray(params)) {
-              params = params ? [params] : [];
-            }
-            if (!params.length) {
-              params = ['Unknown error occurred'];
-            }
+    const udp = decoders.UDP(buffer, ip.offset);
+    if (udp.info.dstport !== 17754) { // Encap. ZigBee Packets
+      return;
+    }
 
-            let err = params.pop();
-            if (!(err instanceof Error)) {
-              if (!params.length) {
-                err = new Error(err);
-              } else {
-                params.push(err);
-                err = new Error(params[0]);
-              }
-            }
+    const data = buffer.subarray(udp.offset, udp.offset + udp.info.length);
 
-            eventEmitter.emit('error', err, context);
-            if (logLevel >= 1) {
-              console.error(...params, err);
-            }
+    const context = { data };
+    const logger = {
+      verbose: logLevel >= 4 ? console.trace : () => {},
+      info: logLevel >= 3 ? console.log : () => {},
+      warn: logLevel >= 2 ? console.warn : () => {},
+      error: function(...params) {
+        if (!Array.isArray(params)) {
+          params = params ? [params] : [];
+        }
+        if (!params.length) {
+          params = ['Unknown error occurred'];
+        }
+
+        let err = params.pop();
+        if (!(err instanceof Error)) {
+          if (!params.length) {
+            err = new Error(err);
+          } else {
+            params.push(err);
+            err = new Error(params[0]);
           }
+        }
+
+        eventEmitter.emit('error', err, context);
+        if (logLevel >= 1) {
+          console.error(...params, err);
+        }
+      }
+    };
+
+    let packet, packetStr, packetType, packetErr;
+    // parse the packet only if a filter is defined or if we are going to emit / log the parsed packet or its attributes
+    if (filter || (events.has('packet') || events.has('attribute'))) {
+      try {
+        packet = Object.defineProperty(parsePacket(data), 'toString', {
+          value: function() {
+            return packetStr || (packetStr = jsonStringify(this));
+          }
+        });
+      } catch (err) {
+        logger.error('Malformed packet!', data.toString('hex'), packetErr = err);
+      }
+
+      if (packet && !packetErr) {
+        try {
+          packetType = getPacketType(packet);
+        } catch (err) {
+          logger.error('Failed to determine packet type!', data.toString('hex'), err);
+          // nothing to do here
+        } finally {
+          packetType ||= 'UNKNOWN';
+        }
+      } else {
+        packetType = 'MALFORMED';
+      }
+    } else {
+      packetType = 'NOT_PARSED';
+    }
+
+    if (packetType === 'APS_CMD_TRANSPORT_KEY') {
+      const key = packet?.wpan?.zbee_nwk?.zbee_aps?.cmd?.key;
+      if (Buffer.isBuffer(key)) {
+        const newPk = pk(key);
+
+        logger.info();
+        logger.info('-'.repeat(60));
+        logger.info();
+        logger.info(`Captured Transport Key ${key.toString('hex')}`);
+        logger.info();
+        logger.info(newPk ? 'Key was automatically added to pre-configured key list' : 'Key was already present in pre-configured key list');
+        logger.info();
+        logger.info('-'.repeat(60));
+        logger.info();
+      }
+    }
+
+    Object.assign(context, { data, packet, type: packetType });
+    if (filter && !(await filter(context))) {
+      return;
+    }
+
+    if (log.has('data')) {
+      console.log(data.toString('hex'), `(${packetType})`);
+    }
+    if (emit.has('data')) {
+      eventEmitter.emit('data', data, context);
+      if (mqtt) {
+        try {
+          await mqttClient.publishAsync(mqttTopic, data);
+        } catch (err) {
+          logger.error('MQTT publish raw packet failed', err);
+        }
+      }
+    }
+
+    if (!packet || packetErr) {
+      return;
+    }
+
+    if (log.has('packet')) {
+      console.log(packet.toString() /* internally calls jsonStringify */, `(${packetType})`);
+    }
+    if (emit.has('packet')) {
+      eventEmitter.emit('packet', packet, context);
+      if (mqtt) {
+        try {
+          await mqttClient.publishAsync(mqttTopic, packet.toString() /* internally calls jsonStringify */);
+        } catch (err) {
+          logger.error('MQTT publish packet failed', err);
+        }
+      }
+    }
+
+    if (!events.has('attribute')) {
+      return;
+    }
+
+    const wpan = packet.wpan, zbee_nwk = wpan.zbee_nwk;
+    if (!zbee_nwk) {
+      return;
+    }
+
+    // populate address table, in case EUIs are to be published
+    if (!process.env.ZBTK_CAP_PASS_NO_EUI) {
+      try {
+        if (zbee_nwk.fc.ext_src) {
+          populateAddressTable(zbee_nwk.src64, zbee_nwk.src);
+        }
+        if (zbee_nwk.fc.ext_dst) {
+          populateAddressTable(zbee_nwk.dst64, zbee_nwk.dst);
+        }
+        if (zbee_nwk.sec) {
+          populateAddressTable(zbee_nwk.sec.src64, wpan.src16);
+          if (zbee_nwk.fc.end_device_initiator) {
+            populateAddressTable(zbee_nwk.sec.src64, zbee_nwk.src);
+          }
+        }
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
+    if (zbee_nwk.sec && zbee_nwk.data) {
+      logger.warn('Packet encrypted / decryption failed or not attempted');
+      if (logPksInfo) {
+        logger.info('Set or check ZBTK_CRYPTO_(WELL_KNOWN_)PKS environment variable(s) or capture Transport Key');
+        logPksInfo = false; // only log the PKS info once
+      }
+    }
+
+    if (!packetType.startsWith('ZCL_') || packetType.endsWith('_ACK') || !zbee_nwk.sec || !zbee_nwk.zbee_aps?.zbee_zcl) {
+      return;
+    }
+
+    let addr, eui, write = false;
+    if (packetType === 'ZCL_CMD_READ_ATTR_RSP' || packetType === 'ZCL_CMD_REPORT_ATTR') {
+      addr = zbee_nwk.src;
+      eui = zbee_nwk.fc.ext_src ? zbee_nwk.src64 : (zbee_nwk.fc.end_device_initiator ? zbee_nwk.sec.src64 : addressTable[id(addr)]);
+    } else if (packetType === 'ZCL_CMD_WRITE_ATTR') {
+      addr = zbee_nwk.dst;
+      eui = zbee_nwk.fc.ext_dst ? zbee_nwk.dst64 : addressTable[id(addr)];
+      write = true;
+    } else {
+      return;
+    }
+
+    // assign further context attributes after extraction from the packet in big-endian format
+    Object.assign(context, eui && { eui: reverseEndian(eui) }, { addr: reverseEndian(addr), write });
+
+    if (!process.env.ZBTK_CAP_PASS_NO_EUI && !eui) {
+      logger.warn(`Devices ${toHex(addr)} 64-Bit Extended Unique Identifier (EUI-64) neither present in packet, nor in address table (yet)`);
+      return;
+    }
+
+    const zbee_aps = zbee_nwk.zbee_aps;
+    // we always expose big-endian to the consumer, little-endian is only for internal use / packet parsing
+    Object.assign(context, { cluster: reverseEndian(zbee_aps.cluster), profile: reverseEndian(zbee_aps.profile) });
+
+    for (const intAttr of zbee_aps.zbee_zcl.attrs) {
+      const attr = { // same as for the context variables, expose big-endian instead of little-endian
+          id: reverseEndian(intAttr.id),
+          value: Buffer.isBuffer(intAttr.value) ? reverseEndian(intAttr.value) : intAttr.value
+        }, hexAttr = {
+          id: toHex(intAttr.id),
+          value: Buffer.isBuffer(intAttr.value) ? toHex(intAttr.value) : intAttr.value
         };
 
-        let packet, packetStr, packetType, packetErr;
-        // parse the packet only if a filter is defined or if we are going to emit / log the parsed packet or its attributes
-        if (filter || (events.has('packet') || events.has('attribute'))) {
-          try {
-            packet = Object.defineProperty(parsePacket(data), 'toString', {
-              value: function() {
-                return packetStr || (packetStr = jsonStringify(this));
-              }
-            });
-          } catch (err) {
-            logger.error('Malformed packet!', data.toString('hex'), packetErr = err);
-          }
+      if (log.has('attribute')) {
+        const cluster = getCluster(context.cluster);
+        console.log(`${cluster?.name || 'Unknown Cluster'} (${toHex(zbee_aps.cluster)})/${cluster?.get?.(attr.id) || 'Unknown Attribute'} (${hexAttr.id}): ${hexAttr.value} (${write ? 'written to' : 'read from'} ${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)})`);
+      }
 
-          if (packet && !packetErr) {
-            try {
-              packetType = getPacketType(packet);
-            } catch (err) {
-              logger.error('Failed to determine packet type!', data.toString('hex'), err);
-              // nothing to do here
-            } finally {
-              packetType ||= 'UNKNOWN';
-            }
-          } else {
-            packetType = 'MALFORMED';
-          }
-        } else {
-          packetType = 'NOT_PARSED';
-        }
-
-        if (packetType === 'APS_CMD_TRANSPORT_KEY') {
-          const key = packet?.wpan?.zbee_nwk?.zbee_aps?.cmd?.key;
-          if (Buffer.isBuffer(key)) {
-            const newPk = pk(key);
-
-            logger.info();
-            logger.info('-'.repeat(60));
-            logger.info();
-            logger.info(`Captured Transport Key ${key.toString('hex')}`);
-            logger.info();
-            logger.info(newPk ? 'Key was automatically added to pre-configured key list' : 'Key was already present in pre-configured key list');
-            logger.info();
-            logger.info('-'.repeat(60));
-            logger.info();
-          }
-        }
-
-        Object.assign(context, { data, packet, type: packetType });
-        if (filter && !(await filter(context))) {
-          return;
-        }
-
-        if (log.has('data')) {
-          console.log(data.toString('hex'), `(${packetType})`);
-        }
-        if (emit.has('data')) {
-          eventEmitter.emit('data', data, context);
-          if (mqtt) {
-            try {
-              await mqttClient.publishAsync(mqttTopic, data);
-            } catch (err) {
-              logger.error('MQTT publish raw packet failed', err);
-            }
-          }
-        }
-
-        if (!packet || packetErr) {
-          return;
-        }
-
-        if (log.has('packet')) {
-          console.log(packet.toString() /* internally calls jsonStringify */, `(${packetType})`);
-        }
-        if (emit.has('packet')) {
-          eventEmitter.emit('packet', packet, context);
-          if (mqtt) {
-            try {
-              await mqttClient.publishAsync(mqttTopic, packet.toString() /* internally calls jsonStringify */);
-            } catch (err) {
-              logger.error('MQTT publish packet failed', err);
-            }
-          }
-        }
-
-        if (!events.has('attribute')) {
-          return;
-        }
-
-        const wpan = packet.wpan, zbee_nwk = wpan.zbee_nwk;
-        if (!zbee_nwk) {
-          return;
-        }
-
-        // populate address table, in case EUIs are to be published
-        if (!process.env.ZBTK_CAP_PASS_NO_EUI) {
-          try {
-            if (zbee_nwk.fc.ext_src) {
-              populateAddressTable(zbee_nwk.src64, zbee_nwk.src);
-            }
-            if (zbee_nwk.fc.ext_dst) {
-              populateAddressTable(zbee_nwk.dst64, zbee_nwk.dst);
-            }
-            if (zbee_nwk.sec) {
-              populateAddressTable(zbee_nwk.sec.src64, wpan.src16);
-              if (zbee_nwk.fc.end_device_initiator) {
-                populateAddressTable(zbee_nwk.sec.src64, zbee_nwk.src);
-              }
-            }
-          } catch (err) {
-            logger.error(err);
-          }
-        }
-
-        if (zbee_nwk.sec && zbee_nwk.data) {
-          logger.warn('Packet encrypted / decryption failed or not attempted');
-          if (logPksInfo) {
-            logger.info('Set or check ZBTK_CRYPTO_(WELL_KNOWN_)PKS environment variable(s) or capture Transport Key');
-            logPksInfo = false; // only log the PKS info once
-          }
-        }
-
-        if (!packetType.startsWith('ZCL_') || packetType.endsWith('_ACK') || !zbee_nwk.sec || !zbee_nwk.zbee_aps?.zbee_zcl) {
-          return;
-        }
-
-        let addr, eui, write = false;
-        if (packetType === 'ZCL_CMD_READ_ATTR_RSP' || packetType === 'ZCL_CMD_REPORT_ATTR') {
-          addr = zbee_nwk.src;
-          eui = zbee_nwk.fc.ext_src ? zbee_nwk.src64 : (zbee_nwk.fc.end_device_initiator ? zbee_nwk.sec.src64 : addressTable[id(addr)]);
-        } else if (packetType === 'ZCL_CMD_WRITE_ATTR') {
-          addr = zbee_nwk.dst;
-          eui = zbee_nwk.fc.ext_dst ? zbee_nwk.dst64 : addressTable[id(addr)];
-          write = true;
-        } else {
-          return;
-        }
-
-        // assign further context attributes after extraction from the packet in big-endian format
-        Object.assign(context, eui && { eui: reverseEndian(eui) }, { addr: reverseEndian(addr), write });
-
-        if (!process.env.ZBTK_CAP_PASS_NO_EUI && !eui) {
-          logger.warn(`Devices ${toHex(addr)} 64-Bit Extended Unique Identifier (EUI-64) neither present in packet, nor in address table (yet)`);
-          return;
-        }
-
-        const zbee_aps = zbee_nwk.zbee_aps;
-        // we always expose big-endian to the consumer, little-endian is only for internal use / packet parsing
-        Object.assign(context, { cluster: reverseEndian(zbee_aps.cluster), profile: reverseEndian(zbee_aps.profile) });
-
-        for (const intAttr of zbee_aps.zbee_zcl.attrs) {
-          const attr = { // same as for the context variables, expose big-endian instead of little-endian
-              id: reverseEndian(intAttr.id),
-              value: Buffer.isBuffer(intAttr.value) ? reverseEndian(intAttr.value) : intAttr.value
-            }, hexAttr = {
-              id: toHex(intAttr.id),
-              value: Buffer.isBuffer(intAttr.value) ? toHex(intAttr.value) : intAttr.value
-            };
-
-          if (log.has('attribute')) {
-            const cluster = getCluster(context.cluster);
-            console.log(`${cluster?.name || 'Unknown Cluster'} (${toHex(zbee_aps.cluster)})/${cluster?.get?.(attr.id) || 'Unknown Attribute'} (${hexAttr.id}): ${hexAttr.value} (${write ? 'written to' : 'read from'} ${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)})`);
-          }
-
-          eventEmitter.emit('attribute', attr, context);
-          if (mqtt) {
-            try {
-              await mqttClient.publishAsync(`${mqttTopic}/${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${hexAttr.id}`,
-                Buffer.isBuffer(attr.value) ? attr.value : `${attr.value}`);
-            } catch (err) {
-              logger.error(err, 'MQTT publish attribute failed');
-            }
-          }
+      eventEmitter.emit('attribute', attr, context);
+      if (mqtt) {
+        try {
+          await mqttClient.publishAsync(`${mqttTopic}/${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${hexAttr.id}`,
+            Buffer.isBuffer(attr.value) ? attr.value : `${attr.value}`);
+        } catch (err) {
+          logger.error(err, 'MQTT publish attribute failed');
         }
       }
     }
