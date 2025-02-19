@@ -14,4 +14,8 @@ This page lists supported / tested capture devices for the [`cap.js` tool](../RE
 | Price | ~236,81€ |
 | Pros / Cons | Pros: Out of the box solution, easy to set-up and configure / no tinkering required. Cons: Quite expensive, requires kernel driver patching on Linux |
 
-Set-up according to [manufacturers instructions](https://www.ubisys.de/wp-content/uploads/ubisys-ieee802154-wireshark-manual.pdf). Only challenge was that when patching the `rndis_host.c` driver on Debian 12 "Bookworm", some `OID_*` constants in the driver have been renamed to `RNDIS_OID_*` instead, which had to be manually renamed in order for the new kernel package to compile.
+Set-up according to [manufacturers instructions](https://www.ubisys.de/wp-content/uploads/ubisys-ieee802154-wireshark-manual.pdf). Only challenge was that when patching the `rndis_host.c` driver on Debian 12 "Bookworm", some `OID_*` constants in the driver have been renamed to `RNDIS_OID_*` instead, which had to be manually renamed in order for the new kernel package to compile. To fix the issue I had to do the following replacements:
+
+```batch
+sed -i 's/OID_STR(OID_/OID_STR(RNDIS_OID_/g' rndis_host.c
+```
