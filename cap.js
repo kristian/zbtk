@@ -129,24 +129,7 @@ export async function open(device, options) {
   };
 
   cap.on('packet', async function() {
-    const eth = decoders.Ethernet(buffer);
-    if (eth.info.type !== capProtocols.ETHERNET.IPV4) {
-      return;
-    }
-
-    const ip = decoders.IPV4(buffer, eth.offset);
-    if (ip.info.protocol !== capProtocols.IP.UDP) {
-      return;
-    }
-
-    const udp = decoders.UDP(buffer, ip.offset);
-    if (udp.info.dstport !== 17754) { // Encap. ZigBee Packets
-      return;
-    }
-
-    const data = buffer.subarray(udp.offset, udp.offset + udp.info.length);
-
-    const context = { data };
+    const context = {};
     const logger = {
       verbose: logLevel >= 4 ? console.trace : () => {},
       info: logLevel >= 3 ? console.log : () => {},
@@ -175,6 +158,24 @@ export async function open(device, options) {
         }
       }
     };
+
+    const eth = decoders.Ethernet(buffer);
+    if (eth.info.type !== capProtocols.ETHERNET.IPV4) {
+      return;
+    }
+
+    const ip = decoders.IPV4(buffer, eth.offset);
+    if (ip.info.protocol !== capProtocols.IP.UDP) {
+      return;
+    }
+
+    const udp = decoders.UDP(buffer, ip.offset);
+    if (udp.info.dstport !== 17754) { // Encap. ZigBee Packets
+      logger.warn(`Received non-ZigBee traffic on port ${udp.info.dstport} of capture device`);
+      return;
+    }
+
+    const data = context.data = buffer.subarray(udp.offset, udp.offset + udp.info.length);
 
     let packet, packetStr, packetType, packetErr;
     // parse the packet only if a filter is defined or if we are going to emit / log the parsed packet or its attributes
@@ -222,7 +223,7 @@ export async function open(device, options) {
       }
     }
 
-    Object.assign(context, { data, packet, type: packetType });
+    Object.assign(context, { packet, type: packetType });
     if (filter && !(await filter(context))) {
       return;
     }
