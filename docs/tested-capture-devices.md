@@ -1,6 +1,8 @@
-# Supported Capture Devices
+# Tested Capture Devices
 
-This page lists supported / tested capture devices for the [`cap.js` tool](../README.md#zbtk-cap) and provides additional set-up instructions and hints.
+This page lists supported and tested capture devices for the [`cap.js` tool](../README.md#zbtk-cap) and provides additional set-up instructions and hints.
+
+Further devices, as for example listed for example in the [ZigBee2MQTT sniffing how-to](https://www.zigbee2mqtt.io/advanced/zigbee/04_sniff_zigbee_traffic.html), should be supported as well. Feel free to open a pull-request to add them to the list if you tested them successfully.
 
 ## Ubisys IEEE 802.15.4 Wireshark USB Stick
 
