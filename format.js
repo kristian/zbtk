@@ -52,11 +52,11 @@ export function eui(eui, sep = `${euiSep}`, reverse) {
       ((index !== eui.length - 1) ? sep : ''), '');
 }
 
-import { moduleHandler, dataMiddleware } from './utils.js';
+import { moduleHandler, stdinMiddleware } from './utils.js';
 export const command = {
   command: 'format <type> [data]',
   desc: 'Format ICs / EUIs / ...',
-  builder: yargs => dataMiddleware(yargs
+  builder: yargs => stdinMiddleware(yargs
     .positional('type', {
       desc: 'Type',
       type: 'string',

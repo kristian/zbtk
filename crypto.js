@@ -135,12 +135,12 @@ export function decrypt(data, nk, src64, fc, scf, aad, mic) {
   ]);
 }
 
-import { dataMiddleware } from './utils.js';
+import { stdinMiddleware } from './utils.js';
 export const commands = [
   {
     command: 'encrypt [data]',
     desc: 'Encrypt Packet',
-    builder: yargs => dataMiddleware(yargs
+    builder: yargs => stdinMiddleware(yargs
       .option('network-key', {
         alias: 'nk',
         desc: 'Network Key (i.e. temp. Link Key)',
@@ -200,7 +200,7 @@ export const commands = [
   {
     command: 'decrypt [data]',
     desc: 'Decrypt Packet',
-    builder: yargs => dataMiddleware(yargs
+    builder: yargs => stdinMiddleware(yargs
       .option('network-key', {
         alias: 'nk',
         desc: 'Network Key (i.e. temp. Link Key)',

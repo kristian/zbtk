@@ -498,11 +498,11 @@ export default function type(packet, type = 'zep') {
   return types[type](packet);
 }
 
-import { dataMiddleware } from './utils.js';
+import { stdinMiddleware } from './utils.js';
 export const command = {
   command: 'type [data]',
   desc: 'Determine Packet Type',
-  builder: yargs => dataMiddleware(yargs
+  builder: yargs => stdinMiddleware(yargs
     .option('type', {
       desc: 'Type of packet to determine the type for',
       type: 'string',

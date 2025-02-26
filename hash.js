@@ -184,11 +184,11 @@ export function key(data, input = 0x0) {
   return mmo(hashIn);
 }
 
-import { moduleHandler, dataMiddleware } from './utils.js';
+import { moduleHandler, stdinMiddleware } from './utils.js';
 export const command = {
   command: 'hash [type] [data]',
   desc: 'Hash / Checksum Calculation',
-  builder: yargs => dataMiddleware(yargs
+  builder: yargs => stdinMiddleware(yargs
     .positional('type', {
       desc: 'Type of hash / checksum to calculate',
       type: 'string',

@@ -55,11 +55,11 @@ export function link(ic) {
   return mmo(checksum(ic));
 }
 
-import { moduleHandler, dataMiddleware } from './utils.js';
+import { moduleHandler, stdinMiddleware } from './utils.js';
 export const command = {
   command: 'ic <action> [install-code]',
   desc: 'Install Code Utilities',
-  builder: yargs => dataMiddleware(yargs
+  builder: yargs => stdinMiddleware(yargs
     .positional('action', {
       desc: 'Action to perform',
       type: 'string',

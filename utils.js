@@ -149,21 +149,30 @@ export function moduleHandler(module, name = () => 'default', args = 'data', for
 }
 
 /**
- * Create a yargs middleware for handling data input
+ * Create a yargs middleware for handling input also from stdin
  *
  * @param {object} yargs the yargs object to extend
  * @param {string} [key='data'] the key to use for the data
- * @param {object} [opt={ optional: false }] the options to use
+ * @param {object} [options={ optional: false }] the options to use
+ * @param {function} [convert=fromHex] the conversion function to use
  * @returns {object} the yargs object for chaining
  */
-export function dataMiddleware(yargs, key = 'data', opt = { optional: false }) {
+export function stdinMiddleware(yargs, key = 'data', options = { optional: false }, convert = fromHex) {
   if (typeof key !== 'string') {
-    opt = key;
+    convert = options;
+    options = key;
     key = 'data';
+  }
+  if (typeof options === 'function') {
+    convert = options;
+    options = { optional: false };
+  }
+  if (convert !== 'function') {
+    convert = fromHex;
   }
 
   return yargs
-    .positional(key, Object.assign({}, opt, {
+    .positional(key, Object.assign({}, options, {
       type: 'string'
     }))
     .middleware(async argv => {
@@ -184,8 +193,11 @@ export function dataMiddleware(yargs, key = 'data', opt = { optional: false }) {
       }
 
       if (argv[key]) {
-        argv[key] = Buffer.from(argv[key], 'hex');
-        for (const alias of ((typeof opt?.alias === 'string' ? [opt.alias] : opt?.alias) || [])) {
+        if (typeof convert === 'function') {
+          argv[key] = convert(argv[key]);
+        }
+
+        for (const alias of ((typeof options?.alias === 'string' ? [options.alias] : options?.alias) || [])) {
           argv[alias] = argv[key];
         }
       }
@@ -193,8 +205,8 @@ export function dataMiddleware(yargs, key = 'data', opt = { optional: false }) {
     .check((argv, options) => {
       if (argv.help) {
         return true;
-      } else if (!argv[key] && !opt?.optional) {
-        throw new TypeError(`Missing positional data argument [${key}] nor anything was piped to stdin`);
+      } else if (!argv[key] && !options?.optional) {
+        throw new TypeError(`Missing positional argument [${key}] nor anything was piped to stdin`);
       }
 
       return true;

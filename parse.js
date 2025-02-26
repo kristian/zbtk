@@ -1083,23 +1083,24 @@ export function parse(data, type = 'zep') {
 
 export default parse;
 
-import { dataMiddleware, jsonStringify } from './utils.js';
-import { type } from 'node:os';
-export const command = {
-  command: 'parse [data]',
-  desc: 'Packet Binary Parser',
-  builder: yargs => dataMiddleware(yargs
-    .option('type', {
-      desc: 'Type of packet to parse',
-      type: 'string',
-      choices: Object.keys(parsers),
-      default: 'zep'
-    }), { desc: 'Data to parse' })
-    .example('$0 parse 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'Parse the given data as a ZigBee Encapsulation Protocol (ZEP) packet')
-    .example('echo -n 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb | $0 parse', 'Parse the given data from stdin as a ZigBee Encapsulation Protocol (ZEP) packet')
-    .version(false)
-    .help(),
-  handler: argv => {
-    console.log(`${parse(argv.data, argv.type)}`);
+import { stdinMiddleware, jsonStringify } from './utils.js';
+export const commands = [
+  {
+    command: 'parse [data]',
+    desc: 'Packet Binary Parser',
+    builder: yargs => stdinMiddleware(yargs
+      .option('type', {
+        desc: 'Type of packet to parse',
+        type: 'string',
+        choices: Object.keys(parsers),
+        default: 'zep'
+      }), { desc: 'Data to parse' })
+      .example('$0 parse 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'Parse the given data as a ZigBee Encapsulation Protocol (ZEP) packet')
+      .example('echo -n 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb | $0 parse', 'Parse the given data from stdin as a ZigBee Encapsulation Protocol (ZEP) packet')
+      .version(false)
+      .help(),
+    handler: argv => {
+      console.log(`${parse(argv.data, argv.type)}`);
+    }
   }
-};
+];
