@@ -6,7 +6,7 @@ A NodeJS based ZigBee Toolkit & Command Line Interface (CLI) for general use.
 
 ## Table of Contents
 
-- [Installation](#Installationok)
+- [Installation](#installation)
 - [Usage / Tools in the Toolkit](#usage--tools-in-the-toolkit)<!-- toctools -->
   * [`cap.js` Capture ](#zbtk-cap)
   * [`cluster.js` Cluster Library Name and Attributes](#zbtk-cluster)
