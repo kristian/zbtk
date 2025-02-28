@@ -802,6 +802,8 @@ ZigBee Toolkit for Node.js by [Kristian Kraljić](https://kra.lc/).
 
 Please file any questions / issues [on Github](https://github.com/kristian/zbtk/issues).
 
+Any ideas / comments, or just want to talk? Feel free to [start a discussion](https://github.com/kristian/zbtk/discussions).
+
 ## License
 
 This library is licensed under the [Apache 2.0](LICENSE) license.
