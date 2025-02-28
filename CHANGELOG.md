@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [1.3] - 2025-02-28
+
+Add `bufferFormat` option to `cap.js` tool.
+
 ## [1.2] - 2025-02-18
 
 Switch from `process.stdout` to `console.log` for better readability on Unix-based operating systems.
