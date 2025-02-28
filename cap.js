@@ -53,6 +53,7 @@ export default { open };
  * @param {object} [options.out.mqtt.client] the MQTT client instead of creating a new one. attention: calling close() will *not* close this client
  * @param {string} [options.out.mqtt.topic='zbtk'] the MQTT topic to publish the packets to
  * @param {number} [options.bufferSize=10485760] the buffer size to use for packet capture
+ * @param {function} [options.bufferFormat] a function to format buffers before emitting them to console / MQTT
  * @returns {Promise<EventEmitter>} a promise to an event emitter (with an additional close method), emitting events of 'options.emit' and 'error' events
  */
 export async function open(device, options) {
@@ -329,21 +330,22 @@ export async function open(device, options) {
       const attr = { // same as for the context variables, expose big-endian instead of little-endian
           id: reverseEndian(intAttr.id),
           value: Buffer.isBuffer(intAttr.value) ? reverseEndian(intAttr.value) : intAttr.value
-        }, hexAttr = {
-          id: toHex(intAttr.id),
-          value: Buffer.isBuffer(intAttr.value) ? toHex(intAttr.value) : intAttr.value
+        }, outAttr = {
+          id: rawToHex(attr.id),
+          value: Buffer.isBuffer(intAttr.value) ? (typeof options?.bufferFormat === 'function' ?
+              options.bufferFormat(attr.value) : rawToHex(attr.value)) : attr.value
         };
 
       if (log.has('attribute')) {
         const cluster = getCluster(context.cluster);
-        console.log(`${cluster?.name || 'Unknown Cluster'} (${toHex(zbee_aps.cluster)})/${cluster?.get?.(attr.id) || 'Unknown Attribute'} (${hexAttr.id}): ${hexAttr.value} (${write ? 'written to' : 'read from'} ${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)})`);
+        console.log(`${cluster?.name || 'Unknown Cluster'} (${toHex(zbee_aps.cluster)})/${cluster?.get?.(attr.id) || 'Unknown Attribute'} (${outAttr.id}): ${Buffer.isBuffer(outAttr.value) ? rawToHex(outAttr.value) : outAttr.value} (${write ? 'written to' : 'read from'} ${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)})`);
       }
 
       eventEmitter.emit('attribute', attr, context);
       if (mqtt) {
         try {
-          await mqttClient.publishAsync(`${mqttTopic}/${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${hexAttr.id}`,
-            Buffer.isBuffer(attr.value) ? attr.value : `${attr.value}`);
+          await mqttClient.publishAsync(`${mqttTopic}/${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${outAttr.id}`,
+            Buffer.isBuffer(outAttr.value) ? outAttr.value : `${outAttr.value}`);
         } catch (err) {
           logger.error(err, 'MQTT publish attribute failed');
         }
