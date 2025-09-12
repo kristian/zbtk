@@ -28,9 +28,16 @@ function id(address) {
 
 const addressTable = {};
 function populateAddressTable(eui, addr) {
+  if (!Buffer.isBuffer(addr = fromHex(addr)) || addr.length !== 2) {
+    throw new TypeError(`Invalid 16-bit network address ${toHex(addr)} for device ${formatEui(eui)}`);
+  }
+  const addrNo = addr.readUInt16LE(0);
+  if (addrNo >= 0xFFF8) {
+    throw new RangeError(`Cannot add reserved broadcast 16-bit network address ${toHex(addr)} to address table`);
+  }
   const addrId = id(addr);
   if (addressTable[addrId] && !addressTable[addrId].equals(eui)) {
-    throw new Error(`Conflict in address table! Both ${formatEui(addressTable[addrId])} and ${formatEui(eui)} use use 16-bit network address ${toHex(addr)}`);
+    throw new Error(`Conflict in address table! Both ${formatEui(addressTable[addrId])} and ${formatEui(eui)} use 16-bit network address ${toHex(addr)}`);
   }
 
   addressTable[addrId] = Buffer.from(eui);
