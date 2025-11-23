@@ -120,7 +120,7 @@
         }
       }
     },
-    "ti_cc24xx_metadata": {
+    "fcs": {
       "$hex": "15ec"
     }
   },

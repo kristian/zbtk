@@ -583,7 +583,7 @@ import { parse } from 'zbtk/parse';
 
 pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex')); // register the network key as pre-configured key for automatic decryption of the parsed packets
 
-`${parse(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex'), 'zep')}` === '{"protocol_id":"EX","version":2,"type":1,"channel_id":19,"device_id":65534,"lqi_mode":0,"lqi":41,"time":{"$hex":"d84f48995f78359c"},"seqno":692650,"length":5,"wpan":{"fcf":{"$hex":"0200"},"fc":{"reserved":false,"pan_id_compression":false,"ack_request":false,"pending":false,"security":false,"type":2,"src_addr_mode":0,"version":0,"dst_addr_mode":0,"ie_present":false,"seqno_suppression":false},"seq_no":63,"ti_cc24xx_metadata":{"$hex":"fecb"}}}';
+`${parse(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex'), 'zep')}` === '{"protocol_id":"EX","version":2,"type":1,"channel_id":19,"device_id":65534,"lqi_mode":0,"lqi":41,"time":{"$hex":"d84f48995f78359c"},"seqno":692650,"length":5,"wpan":{"fcf":{"$hex":"0200"},"fc":{"reserved":false,"pan_id_compression":false,"ack_request":false,"pending":false,"security":false,"type":2,"src_addr_mode":0,"version":0,"dst_addr_mode":0,"ie_present":false,"seqno_suppression":false},"seq_no":63,"fcs":{"$hex":"fecb"}}}';
 ```
 <!--- cSpell:enable --->
 
@@ -619,6 +619,7 @@ Examples:
 
 - See `ZBTK_CRYPTO_PKS` and `ZBTK_CRYPTO_WELL_KNOWN_PKS` of [`crypto.js`](#zbtk-crypto), to pre-configure keys for automatic packet decryption.
 - Set `ZBTK_PARSE_FAIL_DECRYPT` to raise an error in case an encrypted packet cannot be decrypted with the provided (or missing) pre-configured keys, instead of just logging a warning and keeping the raw data `Buffer` in the packet.
+- Set `ZBTK_PARSE_SKIP_FCS_CHECK` to skip the FCS / CRC validation for IEEE 802.15.4 Low-Rate Wireless PAN (WPAN) packets. This is required, as in some cases adapters will validate the FCS themselves and replace it with other information, such as TI CC24xx-format metadata, RSSI / LQI information. In such cases `ZBTK_PARSE_SKIP_FCS_CHECK` should be set and checking the FCS can be safely skipped.
 - Set `ZBTK_PARSE_KEEP_TEMP` to keep temporary / temporal values used for parsing the packet. This is helpful when debugging the packet parsing. Temporary fields are prefixed with a `$` dollar sign and are removed by default before the packet is returned from parsing.
 
 ### <a id='zbtk-type'></a>[`type.js`](type.js) Determine Packet Type

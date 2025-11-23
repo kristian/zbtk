@@ -119,7 +119,7 @@
         }
       }
     },
-    "ti_cc24xx_metadata": {
+    "fcs": {
       "$hex": "e7d9"
     }
   },

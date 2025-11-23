@@ -2,7 +2,7 @@ import { env } from 'node:process';
 import { Buffer } from 'node:buffer';
 import { Parser } from 'binary-parser-encoder-bump';
 import { pks, decrypt } from './crypto.js';
-import { key as hashKey } from './hash.js';
+import { crc, key as hashKey } from './hash.js';
 
 import traverse from 'traverse';
 
@@ -886,11 +886,16 @@ parsers.wpan = new Parser()
   .namely('wpan')
   .useContextVars()
   .saveOffset('$wpanStart')
-  .pointer('$wpanLength', {
+  .pointer('$wpanData', {
     offset: '$wpanStart',
-    type: new Parser().buffer('buffer', { readUntil: 'eof' }),
-    formatter: context => {
-      return context.buffer.length;
+    type: new Parser()
+      .buffer('data', { readUntil: 'eof' }),
+    formatter: parser => parser.data // do not nest pointer
+  })
+  .buffer('$wpanLength', {
+    readUntil: () => true, // do not read any data
+    formatter: function() {
+      return this.$wpanData.length;
     }
   })
   .buffer('fcf', { length: 2 }) // frame control field
@@ -1038,7 +1043,15 @@ parsers.wpan = new Parser()
         }
       })
   })
-  .buffer('ti_cc24xx_metadata', { length: 2 });
+  .buffer('fcs', {
+    length: 2,
+    assert: function(fcs) {
+      // provide the option to skip the FCS check, as sometimes frames come with a CC24xx metadata instead of a FCS (i.e. some sniffers validate the CRC
+      // themselves and replace the FCS with other data, such as LQI / RSSI). in case the packet is part of a ZEP, the FCS is checked when encoding the ZEP package.
+      // otherwise calculate the CRC-16/CCITT style for the IEEE 802.15.4 FCS (xor-in & out = 0x0000, poly = 0x1021)
+      return env.ZBTK_PARSE_SKIP_FCS_CHECK || parent(this, '$zep') || fcs.equals(crc(this.$wpanData.subarray(0, this.$wpanLength - 2), 0x0000, 0x0000));
+    }
+  });
 
 // ZigBee Encapsulation Protocol
 const zepParser = new Parser()
