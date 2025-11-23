@@ -1,5 +1,6 @@
-import fs from 'fs/promises';
+import fs from 'node:fs/promises';
 import traverse from 'traverse';
+import { env } from 'node:process';
 import { Buffer } from 'node:buffer';
 
 /**
@@ -10,7 +11,7 @@ import { Buffer } from 'node:buffer';
  * @returns {string} the value of the environment variable or the default value
  */
 export function getEnvVar(name, defaultValue = undefined) {
-  return name in process.env ? (process.env[name] || '') : defaultValue;
+  return name in env ? (env[name] || '') : defaultValue;
 }
 
 /**
@@ -128,10 +129,10 @@ export function jsonStringify(object, inline = false) {
  * Create a yargs handler for a module that exports a function
  *
  * @param {string} module the module to import
- * @param {string|function} [name=() => 'default'] the name of the function to import
+ * @param {string|(argv: object) => string} [name=() => 'default'] the name of the function to import
  * @param {string|Array} [args='data'] the arguments to pass to the function
- * @param {function} [format=(out, argv) => out.toString()] the format function to use
- * @returns {function} the handler function
+ * @param {(out: any, argv: object) => string} [format=(out, argv) => out.toString()] the format function to use
+ * @returns {(argv: object) => Promise<void>} the handler function
  */
 export function moduleHandler(module, name = () => 'default', args = 'data', format = (out, argv) => {
   if (Buffer.isBuffer(out)) {
@@ -154,7 +155,7 @@ export function moduleHandler(module, name = () => 'default', args = 'data', for
  * @param {object} yargs the yargs object to extend
  * @param {string} [key='data'] the key to use for the data
  * @param {object} [options={ optional: false }] the options to use
- * @param {function} [convert=fromHex] the conversion function to use
+ * @param {(data: any) => any} [convert=fromHex] the conversion function to use
  * @returns {object} the yargs object for chaining
  */
 export function stdinMiddleware(yargs, key = 'data', options = { optional: false }, convert = fromHex) {
@@ -270,10 +271,33 @@ if (esMain(import.meta)) {
 
       // update CLI examples in README.md
       console.log('Updating CLI examples in README.md');
-      await fs.writeFile('README.md', readme.replaceAll(
+      readme = readme.replaceAll(
         /(?<=```bash\n)zbtk ([^<\[\n]*) ?[\s\S]*?(?=\n```)/g,
         // only replace CLIs that contain --help!
-        (match, command) => match.includes('--help') ? commands[command] : match), 'utf-8');
+        (match, command) => match.includes('--help') ? commands[command] : match);
+
+      // update JS examples in README.md
+      console.log('Updating JS examples in README.md');
+      const examples = {};
+      for (const exampleFile of (await fs.readdir('examples')).filter(path => path.endsWith('.js')).map(path => `examples/${path}`)) {
+        examples[exampleFile] = (await fs.readFile(exampleFile, 'utf-8')).replaceAll(/(?<=import .*? from ')..\/([^']*).js/g, 'zbtk/$1').trim();
+      }
+      readme = readme.replaceAll(
+        /(?<=<!--- (examples\/.*?) --->\n```js\n)[\s\S]*?(?=\n```)/g,
+        // only replace CLIs that contain --help!
+        (match, file) => {
+          const example = examples[file];
+
+          if (!example) {
+            console.warn(`Example file ${file} not found`);
+            return match;
+          }
+
+          return example;
+        });
+
+      console.log('Writing changes to README.md');
+      await fs.writeFile('README.md', readme, 'utf-8');
     })
     .demandCommand()
     .help()

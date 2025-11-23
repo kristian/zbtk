@@ -1,3 +1,4 @@
+import { env } from 'node:process';
 import { Buffer } from 'node:buffer';
 import { Parser } from 'binary-parser-encoder-bump';
 import { pks, decrypt } from './crypto.js';
@@ -41,7 +42,7 @@ function optional(name, options) {
 
 function parent(context, field) {
   while (context) {
-    if (context[field]) {
+    if (field in context) {
       return context[field];
     } else {
       context = context.$parent;
@@ -77,7 +78,7 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
         }))
         .pointer('mic', {
           offset: function() {
-            return this.$root.$wpanStart + this.$root.length - 6; // 2 bytes TI CC24xx-format metadata, 4 bytes mic
+            return parent(this, '$wpanStart') + parent(this, '$wpanLength') - 6; // 2 bytes TI CC24xx-format metadata, 4 bytes mic
           },
           type: new Parser()
             .buffer('data', { length: 4 }),
@@ -87,7 +88,7 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
     .saveOffset('$dataOffset')
     .buffer('$data', {
       length: function() {
-        return this.$root.length - (this.$dataOffset - this.$root.$wpanStart) - 6; // 2 bytes TI CC24xx-format metadata, 4 bytes mic;
+        return parent(this, '$wpanLength') - (this.$dataOffset - parent(this, '$wpanStart')) - 6; // 2 bytes TI CC24xx-format metadata, 4 bytes mic;
       }
     })
     .choice(optional({
@@ -127,7 +128,7 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
               }
             }
 
-            if (process.env.ZBTK_PARSE_FAIL_DECRYPT) {
+            if (env.ZBTK_PARSE_FAIL_DECRYPT) {
               throw lastErr;
             } else {
               return 'DECRYPT_FAIL'; // in case decryption fails, keep the raw data
@@ -884,6 +885,14 @@ parsers.zbee_beacon = new Parser()
 parsers.wpan = new Parser()
   .namely('wpan')
   .useContextVars()
+  .saveOffset('$wpanStart')
+  .pointer('$wpanLength', {
+    offset: '$wpanStart',
+    type: new Parser().buffer('buffer', { readUntil: 'eof' }),
+    formatter: context => {
+      return context.buffer.length;
+    }
+  })
   .buffer('fcf', { length: 2 }) // frame control field
   .seek(-2)
   .nest('fc', {
@@ -1032,9 +1041,14 @@ parsers.wpan = new Parser()
   .buffer('ti_cc24xx_metadata', { length: 2 });
 
 // ZigBee Encapsulation Protocol
-parsers.zep = new Parser()
-  .namely('zep')
+const zepParser = new Parser()
   .useContextVars()
+  .buffer('$zep', { // mark ZEP packages (to determine "length" for WPAN)
+    readUntil: () => true, // do not read any data
+    formatter: function() {
+      return true;
+    }
+  })
   .string('protocol_id', { length: 2 })
   .uint8('version')
   .bit8('type')
@@ -1045,21 +1059,40 @@ parsers.zep = new Parser()
   .buffer('time', { length: 8, formatter: formatters.datetime })
   .uint32('seqno')
   .seek(10) // reserved
-  .uint8('length')
-  .saveOffset('$wpanStart')
+  .uint8('length');
+
+parsers.zep = new Parser()
+  .namely('zep')
+  .useContextVars()
+  .nest({ type: zepParser })
   .nest('wpan', { type: 'wpan' });
+
+const zepWpanBufferParser = new Parser()
+  .useContextVars()
+  .nest({ type: zepParser })
+  .buffer('wpan', { readUntil: 'eof' });
+/**
+ * Parse ZigBee Encapsulation Protocol (ZEP) packet data, without parsing the included IEEE 802.15.4
+ * Low-Rate Wireless PAN (WPAN) packet, which will be returned as a raw buffer.
+ *
+ * @param {Buffer} data the packet data to parse
+ * @returns {object} the parsed packet data
+ */
+export function parseZep(data) {
+  return zepWpanBufferParser.parse(data);
+}
 
 /**
  * Parse ZigBee packet data.
  *
- * By default it will parse the data as a ZigBee Encapsulation Protocol (ZEP) packet.
- * Other packet types can be parsed by specifying the type.
+ * By default it will parse the data as a IEEE 802.15.4 Low-Rate Wireless PAN (WPAN) packet.
+ * Other packet types, like ZigBee Encapsulation Protocol (ZEP) packets, can be parsed by specifying the type.
  *
  * @param {Buffer} data the packet data to parse
- * @param {string} [type='zep'] the type of packet to parse
+ * @param {string} [type='wpan'] the type of packet to parse
  * @returns {object} the parsed packet data
  */
-export function parse(data, type = 'zep') {
+export function parse(data, type = 'wpan') {
   if (!(type in parsers)) {
     throw new TypeError(`Unknown packet type: ${type}`);
   }
@@ -1069,7 +1102,7 @@ export function parse(data, type = 'zep') {
     configurable: true
   });
 
-  if (process.env.ZBTK_PARSE_KEEP_TEMP) {
+  if (env.ZBTK_PARSE_KEEP_TEMP) {
     return result;
   }
 
@@ -1090,13 +1123,14 @@ export const commands = [
     desc: 'Packet Binary Parser',
     builder: yargs => stdinMiddleware(yargs
       .option('type', {
+        alias: 't',
         desc: 'Type of packet to parse',
         type: 'string',
         choices: Object.keys(parsers),
-        default: 'zep'
+        default: 'wpan'
       }), { desc: 'Data to parse' })
-      .example('$0 parse 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'Parse the given data as a ZigBee Encapsulation Protocol (ZEP) packet')
-      .example('echo -n 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb | $0 parse', 'Parse the given data from stdin as a ZigBee Encapsulation Protocol (ZEP) packet')
+      .example('$0 parse --type zep 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'Parse the given data as a ZigBee Encapsulation Protocol (ZEP) packet')
+      .example('echo -n 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb | $0 parse --type zep', 'Parse the given data from stdin as a ZigBee Encapsulation Protocol (ZEP) packet')
       .version(false)
       .help(),
     handler: argv => {

@@ -1,12 +1,16 @@
-import capModule from 'cap';
-const { Cap, decoders } = capModule;
-const capProtocols = decoders.PROTOCOL;
+import pcapParser from 'pcap-parser';
+import capDecoders from 'cap-decoders';
+const capProtocols = capDecoders.PROTOCOL;
+
+import { Buffer } from 'node:buffer';
+import { env, stdin } from 'node:process';
+import { Readable as ReadableStream } from 'node:stream';
 
 import { EventEmitter } from 'node:events';
 import { connectAsync as mqttConnect } from 'mqtt';
 
 import { pk } from './crypto.js';
-import { parse as parsePacket } from './parse.js';
+import { parse as parsePacket, parseZep } from './parse.js';
 import { eui as rawFormatEui } from './format.js';
 function formatEui(data) {
   // all EUIs that we format here are read LE from the packet, so reverse before display
@@ -43,27 +47,89 @@ function populateAddressTable(eui, addr) {
   addressTable[addrId] = Buffer.from(eui);
 }
 
-export default { open };
+function capDecoderUnwrapFunction(capDecoder, checkNextLayerInfo) {
+  return (data, nextLayer, logger) => {
+    const decode = capDecoders[capDecoder](data);
+
+    if (checkNextLayerInfo && typeof nextLayer === 'string') {
+      const checkValue = checkNextLayerInfo.layers[nextLayer];
+      if (checkValue !== undefined && decode.info[checkNextLayerInfo.field] !== checkValue) {
+        logger.warn(`Received unexpected packet layer, expected '${nextLayer}' (with ${checkNextLayerInfo.field}: ${checkValue}), got ${decode.info[checkNextLayerInfo.field]}`);
+        return;
+      }
+    }
+
+    return data.subarray(decode.offset, decode.info.length ?
+      decode.offset + decode.info.length : undefined);
+  };
+}
+const unwrapFunctions = { // functions with interface (data: Buffer, nextLayer: string, logger) => Buffer
+  'eth': capDecoderUnwrapFunction('Ethernet', {
+    field: 'type',
+    layers: {
+      'ip4': capProtocols.ETHERNET.IPV4,
+      'ip6': capProtocols.ETHERNET.IPV6
+    }
+  }),
+  'ip4': capDecoderUnwrapFunction('IPV4', {
+    field: 'protocol',
+    layers: {
+      'tcp': capProtocols.IP.TCP,
+      'udp': capProtocols.IP.UDP
+    }
+  }),
+  'ip6': capDecoderUnwrapFunction('IPV6', {
+    field: 'protocol',
+    layers: {
+      'tcp': capProtocols.IP.TCP,
+      'udp': capProtocols.IP.UDP
+    }
+  }),
+  'tcp': capDecoderUnwrapFunction('TCP', {
+    field: 'dstport',
+    layers: {
+      'zep': 17754
+    }
+  }),
+  'udp': capDecoderUnwrapFunction('UDP', {
+    field: 'dstport',
+    layers: {
+      'zep': 17754
+    }
+  }),
+  'zep': (data, nextLayer, logger) => {
+    return parseZep(data).wpan;
+  }
+};
+
+export default { process };
 
 /**
- * Open a capture device for packet capture and emit events of 'data', 'packet' and 'attribute' (and 'error') via the returned EventEmitter.
+ * Process a PCAP input stream or file path and emit events of 'data', 'packet' and 'attribute' (and 'error') via the returned `EventEmitter`.
  *
- * @param {string} device the device to open for capture
+ * @param {(string|ReadableStream)} [input=process.stdin] the input to read the PCAP data from, either a PCAP string or a `ReadableStream` (e.g. process.stdin)
  * @param {object} [options] the capture options
- * @param {(string|string[])} [options.emit=['attribute']] the events to emit via the returned EventEmitter and MQTT in case MQTT options are supplied, either one of 'data', 'packet' and/or 'attribute', 'error' events always getting emitted from the returned EventEmitter regardless of the settings
- * @param {string|object|function} [options.filter] the filter to apply to the packets, a eval-estree-expression expression (see https://github.com/jonschlinkert/eval-estree-expression?tab=readme-ov-file#examples), estree-compatible expression AST, or filter function
+ * @param {(string|(data: Buffer, nextLayer: (string|(data: Buffer) => Buffer), logger: object) => Buffer|(string|(data: Buffer, nextLayer: (string|(data: Buffer) => Buffer), logger: object) => Buffer)[])} [options.unwrapLayers] the layers to unwrap to get to the WPAN package / layer, either one of 'eth', 'ip4', 'ip6', 'tcp', 'udp', 'zep', or a plain function transforming a `Buffer` or an array of those, in order of unwrapping to occur
+ * @param {(string|string[])} [options.emit=['attribute']] the events to emit via the returned EventEmitter and MQTT in case MQTT options are supplied, either one of 'data', 'packet' (WPAN) and/or 'attribute', 'error' events always getting emitted from the returned EventEmitter regardless of the settings
+ * @param {string|object|(context: object) => Promise<boolean>} [options.filter] the filter to apply to the packets, a eval-estree-expression expression (see https://github.com/jonschlinkert/eval-estree-expression?tab=readme-ov-file#examples), estree-compatible expression AST, or filter function
  * @param {object} [options.out] the output options
- * @param {(boolean|string|string[])} [options.out.log] the events to log, any 'data', 'packet' and / or 'attribute', additionally 'verbose', 'info', 'warn' or 'error' sets the log-level, default is 'info'. true to log all emitted events as well as enable 'info' logging, false to disable logging entirely
+ * @param {(boolean|string|string[])} [options.out.log] the events to log, any 'data', 'packet' (WPAN) and / or 'attribute', additionally 'verbose', 'info', 'warn' or 'error' sets the log-level, default is 'info'. true to log all emitted events as well as enable 'info' logging, false to disable logging entirely
  * @param {object} [options.out.mqtt] the MQTT output options
  * @param {string} [options.out.mqtt.url] the MQTT broker URL
  * @param {object} [options.out.mqtt.options] the MQTT connection options
  * @param {object} [options.out.mqtt.client] the MQTT client instead of creating a new one. attention: calling close() will *not* close this client
  * @param {string} [options.out.mqtt.topic='zbtk'] the MQTT topic to publish the packets to
- * @param {number} [options.bufferSize=10485760] the buffer size to use for packet capture
- * @param {function} [options.bufferFormat] a function to format buffers before emitting them to console / MQTT
+ * @param {(buffer: Buffer) => any} [options.bufferFormat] a function to format buffers before emitting them to console / MQTT
  * @returns {Promise<EventEmitter>} a promise to an event emitter (with an additional close method), emitting events of 'options.emit' and 'error' events
  */
-export async function open(device, options) {
+export async function process(input = stdin, options) {
+  if (input instanceof ReadableStream) {
+    input.pause();
+  } else if (!input || typeof input === 'object') {
+    options = input || options;
+    input = stdin;
+  }
+
   let mqttClient, mqttTopic;
   const mqtt = options?.out?.mqtt;
   if (mqtt) {
@@ -107,8 +173,6 @@ export async function open(device, options) {
   const events = new Set([...emit, ...log]); // union
   events.delete('error');
 
-  const bufferSize = options?.bufferSize || 10 * 1024 * 1024, buffer = Buffer.alloc(bufferSize);
-
   let filter;
   if (typeof options?.filter === 'function') {
     filter = options.filter;
@@ -116,9 +180,17 @@ export async function open(device, options) {
     filter = whence.compile(options.filter);
   }
 
-  const cap = new Cap();
-  cap.open(device, '', bufferSize, buffer);
-  cap.setMinBytes && cap.setMinBytes(0);
+  let unwrap = (data, logger) => data; // by default a no-op, but if unwrapLayers are defined, a pre-compiled list of unwrap functions
+  const unwrapLayers = options?.unwrapLayers ? (Array.isArray(options.unwrapLayers) ? options.unwrapLayers : [options.unwrapLayers]) : [];
+  unwrapLayers.forEach((layer, index) => {
+    let unwrapFunction = typeof layer === 'function' ? layer : unwrapFunctions[layer];
+    if (typeof unwrapFunction !== 'function') {
+      throw new TypeError(`Unknown unwrap layer specified at index ${index}: ${layer}`);
+    }
+
+    const previousUnwrap = unwrap;
+    unwrap = (data, logger) => unwrapFunction(previousUnwrap(data, logger), unwrapLayers[index + 1], logger);
+  });
 
   const eventEmitter = new EventEmitter();
   eventEmitter.on('error', function() {
@@ -126,19 +198,16 @@ export async function open(device, options) {
     // handler is present. errors are still logged to console instead
   });
   eventEmitter.close = async function() {
-    try {
-      cap.close();
-    } finally {
-      // close the MQTT client in any case
-      if (!mqtt.client && mqttClient) {
-        await mqttClient.end();
-      }
+    if (!mqtt?.client && mqttClient) {
+      await mqttClient.end();
     }
   };
 
-  cap.on('packet', async function() {
+  const parser = pcapParser.parse(input);
+
+  parser.on('packet', async function(rawPacket) {
     const context = {};
-    const logger = {
+    const logger = { // define the logger in-line, to access the current context
       verbose: logLevel >= 4 ? console.trace : () => {},
       info: logLevel >= 3 ? console.log : () => {},
       warn: logLevel >= 2 ? console.warn : () => {},
@@ -167,23 +236,15 @@ export async function open(device, options) {
       }
     };
 
-    const eth = decoders.Ethernet(buffer);
-    if (eth.info.type !== capProtocols.ETHERNET.IPV4) {
-      return;
+    let unwrapData;
+    try {
+      unwrapData = unwrap(rawPacket.data);
+    } catch (err) {
+      logger.error('Failed to unwrap packet!', rawPacket.data.toString('hex'), err);
+      return; // no further processing of this packet
     }
 
-    const ip = decoders.IPV4(buffer, eth.offset);
-    if (ip.info.protocol !== capProtocols.IP.UDP) {
-      return;
-    }
-
-    const udp = decoders.UDP(buffer, ip.offset);
-    if (udp.info.dstport !== 17754) { // Encap. ZigBee Packets
-      logger.warn(`Received non-ZigBee traffic on port ${udp.info.dstport} of capture device`);
-      return;
-    }
-
-    const data = context.data = buffer.subarray(udp.offset, udp.offset + udp.info.length);
+    const data = context.data = unwrapData;
 
     let packet, packetStr, packetType, packetErr;
     // parse the packet only if a filter is defined or if we are going to emit / log the parsed packet or its attributes
@@ -215,7 +276,7 @@ export async function open(device, options) {
     }
 
     if (packetType === 'APS_CMD_TRANSPORT_KEY') {
-      const key = packet?.wpan?.zbee_nwk?.zbee_aps?.cmd?.key;
+      const key = packet?.zbee_nwk?.zbee_aps?.cmd?.key;
       if (Buffer.isBuffer(key)) {
         const newPk = pk(key);
 
@@ -272,13 +333,13 @@ export async function open(device, options) {
       return;
     }
 
-    const wpan = packet.wpan, zbee_nwk = wpan.zbee_nwk;
+    const zbee_nwk = packet.zbee_nwk;
     if (!zbee_nwk) {
       return;
     }
 
     // populate address table, in case EUIs are to be published
-    if (!process.env.ZBTK_CAP_PASS_NO_EUI) {
+    if (!env.ZBTK_CAP_PASS_NO_EUI) {
       try {
         if (zbee_nwk.fc.ext_src) {
           populateAddressTable(zbee_nwk.src64, zbee_nwk.src);
@@ -287,7 +348,7 @@ export async function open(device, options) {
           populateAddressTable(zbee_nwk.dst64, zbee_nwk.dst);
         }
         if (zbee_nwk.sec) {
-          populateAddressTable(zbee_nwk.sec.src64, wpan.src16);
+          populateAddressTable(zbee_nwk.sec.src64, packet.src16); // packet=WPAN -> src16 address
           if (zbee_nwk.fc.end_device_initiator) {
             populateAddressTable(zbee_nwk.sec.src64, zbee_nwk.src);
           }
@@ -324,7 +385,7 @@ export async function open(device, options) {
     // assign further context attributes after extraction from the packet in big-endian format
     Object.assign(context, eui && { eui: reverseEndian(eui) }, { addr: reverseEndian(addr), write });
 
-    if (!process.env.ZBTK_CAP_PASS_NO_EUI && !eui) {
+    if (!env.ZBTK_CAP_PASS_NO_EUI && !eui) {
       logger.warn(`Devices ${toHex(addr)} 64-Bit Extended Unique Identifier (EUI-64) neither present in packet, nor in address table (yet)`);
       return;
     }
@@ -345,13 +406,13 @@ export async function open(device, options) {
 
       if (log.has('attribute')) {
         const cluster = getCluster(context.cluster);
-        console.log(`${cluster?.name || 'Unknown Cluster'} (${toHex(zbee_aps.cluster)})/${cluster?.get?.(attr.id) || 'Unknown Attribute'} (${outAttr.id}): ${Buffer.isBuffer(outAttr.value) ? rawToHex(outAttr.value) : outAttr.value} (${write ? 'written to' : 'read from'} ${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)})`);
+        console.log(`${cluster?.name || 'Unknown Cluster'} (${toHex(zbee_aps.cluster)})/${cluster?.get?.(attr.id) || 'Unknown Attribute'} (${outAttr.id}): ${Buffer.isBuffer(outAttr.value) ? rawToHex(outAttr.value) : outAttr.value} (${write ? 'written to' : 'read from'} ${!env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)})`);
       }
 
       eventEmitter.emit('attribute', attr, context);
       if (mqtt) {
         try {
-          await mqttClient.publishAsync(`${mqttTopic}/${!process.env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${outAttr.id}`,
+          await mqttClient.publishAsync(`${mqttTopic}/${!env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${outAttr.id}`,
             Buffer.isBuffer(outAttr.value) ? outAttr.value : `${outAttr.value}`);
         } catch (err) {
           logger.error(err, 'MQTT publish attribute failed');
@@ -359,24 +420,28 @@ export async function open(device, options) {
       }
     }
   });
+  // re-emit error events to our EventEmitter
+  parser.on('error', function(err) {
+    eventEmitter.emit('error', err);
+  });
 
   return eventEmitter;
 }
 
 export const command = {
-  command: 'cap [device]',
+  command: 'cap [file]',
   desc: 'Packet / Attribute (to MQTT) Capture',
   builder: yargs => yargs
-    .positional('device', {
-      desc: 'Capture device to use',
-      type: 'string',
-      conflicts: 'list-devices'
+    .positional('file', {
+      desc: 'PCAP file to read instead of STDIN',
+      type: 'string'
     })
-    .option('list-devices', {
-      alias: ['list'],
-      desc: 'List all available capture devices',
-      type: 'boolean',
-      conflicts: 'device'
+    .option('unwrap', {
+      alias: 'u',
+      desc: 'Layers to unwrap to get to the WPAN packet',
+      type: 'array',
+      choices: ['eth', 'ip4', 'ip6', 'tcp', 'udp', 'zep'],
+      default: ['zep']
     })
     .option('emit', {
       alias: 'e',
@@ -397,38 +462,46 @@ export const command = {
       type: 'string'
     })
     .option('mqtt-host', {
-      alias: 'h',
+      alias: 'mh',
       desc: 'MQTT broker host',
       type: 'string'
     })
     .option('mqtt-port', {
-      alias: 'p',
+      alias: 'mp',
       desc: 'MQTT broker port',
       type: 'number',
       default: 1883
     })
     .option('mqtt-username', {
-      alias: ['u', 'user', 'mqtt-user'],
+      alias: ['mu', 'mqtt-user'],
       desc: 'MQTT broker username',
       type: 'string'
     })
     .option('mqtt-password', {
-      alias: ['pw', 'pass', 'mqtt-pw', 'mqtt-pass'],
+      alias: ['mp', 'mqtt-pw', 'mqtt-pass'],
       desc: 'MQTT broker password',
       type: 'string'
     })
     .option('mqtt-topic', {
-      alias: 't',
+      alias: 'mt',
       desc: 'MQTT topic',
       type: 'string',
       default: 'zbtk'
     })
+    .middleware(argv => {
+      // allow comma-separated lists for unwrap
+      argv.unwrap = (argv.unwrap || []).map(layer => layer ? layer?.split(',') : []).flat();
+    }, /* applyBeforeValidation = */true)
     .check((argv, options) => {
       if (argv.help) {
         return true;
-      } else if (!argv.listDevices && !argv.device) {
-        throw new TypeError('Either specify a <device> to capture or use --list-devices to list all available capture devices');
+      } else if (!argv.file && stdin.isTTY) {
+        // note that stdin.isTTY is true in case there is NO input
+        // and falsy (undefined) if there is data piped to stdin
+        // see https://nodejs.org/api/tty.html#tty_tty
+        throw new TypeError(`Missing positional argument [file], or data piped into stdin`);
       }
+
       return true;
     })
     .middleware(async argv => {
@@ -443,35 +516,26 @@ export const command = {
         argv.log = false;
       }
     })
-    .example('$0 cap --list-devices', 'List all available capture devices')
-    .example(`$0 cap '\\Device\\NPF_{83B280A6-6C08-4F7A-A8F2-9C88E12998CD}' --filter 'type != \\"WPAN_ACK\\" && type != \\"WPAN_COMMAND\\"'`, 'Capture non-WPAN packets and print them to console')
-    .example('$0 cap /dev/en0 --emit attribute --mqtt-host localhost --mqtt-user user --mqtt-password password', 'Capture packets from /dev/en0 and emit captured attributes to an MQTT broker')
+    .example(`$0 cap trace.pcap --filter 'type != \\"WPAN_ACK\\" && type != \\"WPAN_COMMAND\\"'`, 'Process trace.pcap for non-WPAN packets and print them to console')
+    .example('$0 cap --emit attribute --mqtt-host localhost --mqtt-user user --mqtt-pass password', 'Process packets from STDIN and emit captured attributes to an MQTT broker')
     .version(false)
     .help(),
   handler: async argv => {
-    if (argv.listDevices) {
-      const devices = Cap.deviceList();
-      if (devices.length === 0) {
-        console.log('No capture devices found');
-      } else {
-        devices.forEach(device => console.log(`Cap. Device: ${device.name}\nDescription: ${device.description}\n`));
-      }
-    } else {
-      await open(argv.device, {
-        emit: argv.emit,
-        filter: argv.filter,
-        out: {
-          log: argv.log,
-          mqtt: argv.mqttHost && {
-            url: `mqtt://${argv.mqttHost}:${argv.mqttPort}`,
-            options: {
-              username: argv.mqttUsername,
-              password: argv.mqttPassword
-            },
-            topic: argv.mqttTopic
-          }
+    await process(argv.file, {
+      unwrapLayers: argv.unwrap,
+      emit: argv.emit,
+      filter: argv.filter,
+      out: {
+        log: argv.log,
+        mqtt: argv.mqttHost && {
+          url: `mqtt://${argv.mqttHost}:${argv.mqttPort}`,
+          options: {
+            username: argv.mqttUsername,
+            password: argv.mqttPassword
+          },
+          topic: argv.mqttTopic
         }
-      });
-    }
+      }
+    });
   }
 };

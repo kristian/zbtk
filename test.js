@@ -1,7 +1,8 @@
 import test from 'ava';
 
-import fs from 'fs';
-import { join, basename, dirname } from 'path';
+import fs from 'node:fs';
+import { env } from 'node:process';
+import { join, basename, dirname } from 'node:path';
 
 import { globSync as glob } from 'glob';
 import { jsonParse, getCliOutput } from './utils.js';
@@ -12,7 +13,7 @@ import { default as tools, commands } from './tools.js';
 tools.crypto.pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex')); // transport key
 tools.crypto.pk(Buffer.from('4c23a848a76f432113510a301c5fdfd2', 'hex')); // link key for install code EE91 7C25 E941 23C2 27B9 3F4D 50A0 C34F 373D
 
-process.env.ZBTK_PARSE_FAIL_DECRYPT = '1';
+env.ZBTK_PARSE_FAIL_DECRYPT = '1';
 
 /*
  Tests for cluster tool
@@ -37,18 +38,18 @@ test('Cluster tool', t => {
  Tests for parse tool
 */
 
-// tests for parsing, compare stored packet data in test/parse/*.hex with expected test/parse/*.json results
-for (const hexFile of glob('test/parse/*.hex')) {
-  const name = basename(hexFile, '.hex');
+// tests for parsing, compare stored packet data in test/parse/*/*.hex with expected test/parse/*/*.json results
+for (const hexFile of glob('test/parse/*/*.hex')) {
+  const name = basename(hexFile, '.hex'), parseType = basename(dirname(hexFile));
   const data = Buffer.from(fs.readFileSync(`${hexFile}`, 'utf-8'), 'hex');
   const expected = jsonParse(fs.readFileSync(`${join(dirname(hexFile), name)}.json`, 'utf-8'));
   const type = expected.$type || name.toUpperCase().replaceAll(/\d+$/g, '');
   delete expected.$type;
 
   test(`Parse ${name}`, t => {
-    const packet = tools.parse.default(data);
+    const packet = tools.parse.default(data, parseType);
     t.deepEqual(packet, expected);
-    t.is(tools.type.default(packet), type);
+    t.is(tools.type.default(packet, parseType), type);
   });
 }
 
@@ -98,8 +99,9 @@ for (const match of readme.matchAll(/(?<=```(?:js|javascript)\s*\n)[\s\S]*?(?=\n
 
   // check if the example is available in /examples
   test(`Example '${js.substring(0, 30)}...' in /examples`, t => {
-    !Object.values(examples).some(fileJs => fileJs.includes(js)) && console.log(js);
-    Object.values(examples).some(fileJs => fileJs.includes(js)) ? t.pass() : t.fail();
+    const exists = Object.values(examples).some(fileJs => fileJs.includes(js));
+    !exists && console.log(js);
+    exists ? t.pass() : t.fail();
   });
 }
 

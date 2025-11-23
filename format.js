@@ -1,3 +1,4 @@
+import { env } from 'node:process';
 import { Buffer } from 'node:buffer';
 import { reverseEndian, fromHex } from './utils.js';
 
@@ -24,7 +25,7 @@ export function ic(ic, reverse) {
       ((index % 2 === 1 && index !== ic.length - 1) ? ' ' : ''), '');
 }
 
-const euiSep = { toString: () => (process.env.ZBTK_FORMAT_EUI_SEPARATOR || ':').toString()[0] };
+const euiSep = { toString: () => (env.ZBTK_FORMAT_EUI_SEPARATOR || ':').toString()[0] };
 
 /**
  * As per IEEE specification the EUI(64)s are represented as hexadecimals

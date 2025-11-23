@@ -1,14 +1,15 @@
 import crypto from 'crypto';
+import { env } from 'node:process';
 import { Buffer } from 'node:buffer';
 import { fromHex, toHex } from './utils.js';
 
 const alg = 'aes-128-ccm';
 
 // pre-configured keys
-export const pks = (!process.env.ZBTK_CRYPTO_WELL_KNOWN_PKS ? [] : [
+export const pks = (!env.ZBTK_CRYPTO_WELL_KNOWN_PKS ? [] : [
   fromHex('D0:D1:D2:D3:D4:D5:D6:D7:D8:D9:DA:DB:DC:DD:DE:DF'), // Uncertified
   fromHex('5A:69:67:42:65:65:41:6C:6C:69:61:6E:63:65:30:39') // ZigBeeAlliance09
-]).concat(!process.env.ZBTK_CRYPTO_PKS ? [] : process.env.ZBTK_CRYPTO_PKS.split('[,; ]').map(fromHex));
+]).concat(!env.ZBTK_CRYPTO_PKS ? [] : env.ZBTK_CRYPTO_PKS.split('[,; ]').map(fromHex));
 
 /**
  * Pre-configure a network key to be used for automatic decryption.
@@ -25,7 +26,7 @@ export function pk(key) {
 }
 
 function prepare(src64, fc, scf, aad) {
-  if (!process.env.ZBTK_CRYPTO_NO_WIRE_WORKAROUND) {
+  if (!env.ZBTK_CRYPTO_NO_WIRE_WORKAROUND) {
     // the security control field is not filled in correctly in the header,
     // so it is necessary to patch it up to contain ZBEE_SEC_ENC_MIC32 == 5.
     // not sure why, but Wireshark does it. also patch it in the AAD header.

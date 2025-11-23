@@ -33,7 +33,8 @@ export default [
       'jsdoc/require-jsdoc': ['error', { 'publicOnly': true }],
       'jsdoc/require-returns-type': ['error', { 'contexts': ['any'] }],
       'jsdoc/tag-lines': ['error', 'any', { 'startLines': 1 }],
-      'jsdoc/no-defaults': ['off']
+      'jsdoc/no-defaults': ['off'],
+      'jsdoc/reject-any-type': ['off']
     },
     'settings': {
       'jsdoc': {

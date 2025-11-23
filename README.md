@@ -94,7 +94,7 @@ All tools are exposed via the `zbtk` command line:
 zbtk <tool>
 
 Tools:
-  zbtk cap [device]                Packet / Attribute (to MQTT) Capture
+  zbtk cap [file]                  Packet / Attribute (to MQTT) Capture
   zbtk cluster <id>                Cluster Library Name and Attributes
   zbtk encrypt [data]              Encrypt Packet
   zbtk decrypt [data]              Decrypt Packet
@@ -111,30 +111,31 @@ Options:
 
 ### <a id='zbtk-cap'></a>[`cap.js`](cap.js) Packet / Attribute (to MQTT) Capture 
 
-This tool is used to capture ZigBee packets using a (P)CAP compatible capture device, e.g. a [Ubisys IEEE 802.15.4 Wireshark USB Stick](https://www.ubisys.de/en/products/for-zigbee-product-developers/wireshark-usb-stick/) (see [tested capture devices](docs/tested-capture-devices.md)), optionally parsing the packet contents, decrypting the received packet with (pre-defined) Network Keys and publishing the packets and / or parsed attributes of the packets via the [`EventEmitter`](https://nodejs.org/api/events.html#class-eventemitter) interface and / or via MQTT to an external event stream.
+This tool is used to capture ZigBee packets and its attributes from a (P)CAP compatible capture stream or file, as produced by tools like `tcpdump` or `dumpcap`. Any compatible ZigBee Sniffer can be used as a source device for the (P)CAP stream, for instance a [Ubisys IEEE 802.15.4 Wireshark USB Stick](https://www.ubisys.de/en/products/for-zigbee-product-developers/wireshark-usb-stick/) (or any other device, that outputs a (P)CAP compatible stream, see [tested capture devices](docs/tested-capture-devices.md)). The tool can optionally parse the packet contents, decrypt them with (pre-defined) network keys and publishing the packets and / or parsed attributes of the packets via the [`EventEmitter`](https://nodejs.org/api/events.html#class-eventemitter) interface and / or via MQTT to an external event stream.
 
 ```
-(P)CAP Network Interface -> ZBTK cap.js
-  (-> parse (-> decrypt (-> extract attributes)))
+Any Compatible ZigBee Sniffing / Capture Device / (Network) Adapter -> (P)CAP Utility (i.e. tcpdump / dumpcap) -> ZBTK cap.js
+  (-> parse [-> decrypt] (-> extract attributes))
     (-> Console Log)
     (-> EventEmitter)
     (-> MQTT)
 ```
 
-The captured raw / binary packet data may be published / emitted, based on the `emit` options. Packet contents can be automatically parsed into an object model / structure. In case the content contains encrypted data, an attempt is made to decrypt the data with any pre-shared key provided. Attributes can be extracted from `WRITE`/`READ`/`REPORT` attribute(s) packets and forwarded to the eventing interface. This last feature is especially helpful to mimic a [ZigB
+The captured raw / binary packet data may be published / emitted, based on the `emit` options. Packet contents can be automatically parsed into an object model / structure. In case the content contains encrypted data, an attempt is made to decrypt the data with any pre-shared keys provided. Attributes can be extracted from `WRITE`/`READ`/`REPORT` attribute(s) packets and forwarded to the eventing interface. This last feature is especially helpful to mimic a [ZigB
 ee2MQTT](https://www.zigbee2mqtt.io/)-style event stream for ZigBee networks that you don't want to replace the coordinator / bridge for. See the [application examples](#application-examples) for when this becomes useful.
 
 #### API Usage
 
 ```js
-import { open as openCap } from 'zbtk/cap';
+import { process as processCap } from 'zbtk/cap';
 
 // set pre-configured keys for automatic decryption either via the
 // ZBTK_CRYPTO_PKS / ZBTK_CRYPTO_WELL_KNOWN_PKS env. variables or:
-// import { pk } from 'zbtk/crypto';
-// pk('D0:D1:D2:D3:D4:D5:D6:D7:D8:D9:DA:DB:DC:DD:DE:DF');
+import { pk } from 'zbtk/crypto';
+pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex'));
 
-const capSession = await openCap('device-id', {
+const capEmitter = await processCap('examples/trace.pcap', {
+  unwrapLayers: ['eth', 'ip4', 'udp', 'zep'], // the layers to unwrap to reach the WPAN/ZigBee layer for processing, defaults to []
   bufferSize: 10 * 1024 * 1024, // in bytes, defaults to 10 MB
   emit: ['attribute'], // defaults to "attribute", one, multiple of: "data", "packet", "attribute"
   out: {
@@ -152,16 +153,16 @@ const capSession = await openCap('device-id', {
 });
 ```
 
-The returned `capSession` acts as a `EventEmitter`, that emits all events of the `emit` array:
+The returned `capEmitter` acts as a `EventEmitter`, that emits all events of the `emit` array:
 
 ```js
-capSession.on('data', function(data, context) {
+capEmitter.on('data', function(data, context) {
   // the raw / unparsed packet data, in case the packet was
   // parsed (e.g. due to "packet" being set in the emit
   // options), context already includes the parsed packet
   const { packet, type } = context;
 });
-capSession.on('packet', function(packet, context) {
+capEmitter.on('packet', function(packet, context) {
   // parsed / decrypted in case "packet" is set in the emit
   // options and decrypted in case of any pre-configured key
   // matched to decrypt the packet contents. context includes:
@@ -169,10 +170,10 @@ capSession.on('packet', function(packet, context) {
 });
 ```
 
-It emits the raw / binary packet contents as `Buffer` and / or parsed and / or decrypted packet as an `Object`. In case `attribute` is part of the `emit` option the `capSession` publishes all attributes captured from `WRITE`/`READ`/`REPORT` packets to:
+It emits the raw / binary packet contents as `Buffer` and / or parsed and / or decrypted packet as an `Object`. In case `attribute` is part of the `emit` option the `capEmitter` publishes all attributes captured from `WRITE`/`READ`/`REPORT` packets to:
 
 ```js
-capSession.on('attribute', function(attr, context) {
+capEmitter.on('attribute', function(attr, context) {
   const {
     id, // the 2-byte ID of the attribute in the cluster (in big-endian notation)
     type, // the 2-byte type of the attribute
@@ -194,47 +195,45 @@ capSession.on('attribute', function(attr, context) {
 
 In case `out.log` is set, emits are also print to `stdout` / console. `out.log` may include different options than `emit`, e.g. set `out.log` to `data` to print out the binary data of each packet to console, while emitting the parsed attributes to the eventing interface or MQTT if the `out.mqtt` option is set. Note that the packet always gets parsed in case either `emit` or `out.log` contains `packet` or `attribute`, or in case a `filter` is set.
 
-To close the capture session any MQTT client created, invoke the `.close()` function:
+To close any MQTT client created when the `out.mqtt` option as set, invoke the `.close()` function:
 
 ```js
-await capSession.close();
+await capEmitter.close();
 ```
 
 #### CLI Usage
 
 <!--- cSpell:disable --->
 ```bash
-zbtk cap [device]
+zbtk cap [file]
 
 Packet / Attribute (to MQTT) Capture
 
 Positionals:
-  device  Capture device to use                                                             [string]
+  file  PCAP file to read instead of STDIN                                                  [string]
 
 Options:
-      --list-devices, --list                          List all available capture devices   [boolean]
-  -e, --emit                                          Events to emit to MQTT
+  -u, --unwrap                                       Layers to unwrap to get to the WPAN packet
+                      [array] [choices: "eth", "ip4", "ip6", "tcp", "udp", "zep"] [default: ["zep"]]
+  -e, --emit                                         Events to emit to MQTT
                            [array] [choices: "data", "packet", "attribute"] [default: ["attribute"]]
-  -l, --log                                           Log outputs, defaults "info", if no output MQT
-                                                      T also to "packet", --no-log to disable
+  -l, --log                                          Log outputs, defaults "info", if no output MQTT
+                                                     also to "packet", --no-log to disable
          [array] [choices: false, "data", "packet", "attribute", "info", "warn", "error", "verbose"]
-  -f, --filter                                        Filter packets to emit / log (whence expressio
-                                                      n)                                    [string]
-  -h, --mqtt-host                                     MQTT broker host                      [string]
-  -p, --mqtt-port                                     MQTT broker port      [number] [default: 1883]
-  -u, --mqtt-username, --user, --mqtt-user            MQTT broker username                  [string]
-      --mqtt-password, --pw, --pass, --mqtt-pw, --mq  MQTT broker password
-      tt-pass                                                                               [string]
-  -t, --mqtt-topic                                    MQTT topic          [string] [default: "zbtk"]
-      --help                                          Show help                            [boolean]
+  -f, --filter                                       Filter packets to emit / log (whence
+                                                     expression)                            [string]
+      --mqtt-host, --mh                              MQTT broker host                       [string]
+      --mqtt-port, --mp                              MQTT broker port       [number] [default: 1883]
+      --mqtt-username, --mu, --mqtt-user             MQTT broker username                   [string]
+      --mqtt-password, --mp, --mqtt-pw, --mqtt-pass  MQTT broker password                   [number]
+      --mqtt-topic, --mt                             MQTT topic           [string] [default: "zbtk"]
+      --help                                         Show help                             [boolean]
 
 Examples:
-  zbtk cap --list-devices                             List all available capture devices
-  zbtk cap '\Device\NPF_{83B280A6-6C08-4F7A-A8F2-9C8  Capture non-WPAN packets and print them to con
-  8E12998CD}' --filter 'type != \"WPAN_ACK\" && type  sole
-   != \"WPAN_COMMAND\"'
-  zbtk cap /dev/en0 --emit attribute --mqtt-host loc  Capture packets from /dev/en0 and emit capture
-  alhost --mqtt-user user --mqtt-password password    d attributes to an MQTT broker
+  zbtk cap trace.pcap --filter 'type != \"WPAN_ACK\"  Process trace.pcap for non-WPAN packets and
+  && type != \"WPAN_COMMAND\"'                        print them to console
+  zbtk cap --emit attribute --mqtt-host localhost     Process packets from STDIN and emit captured
+  --mqtt-user user --mqtt-pass password               attributes to an MQTT broker
 ```
 <!--- cSpell:enable --->
 
@@ -252,6 +251,7 @@ This tool provides information about clusters of the ZigBee Cluster Library acco
 
 #### API Usage
 
+<!--- examples/cluster.js --->
 ```js
 import getCluster from 'zbtk/cluster';
 
@@ -327,6 +327,7 @@ The same algorithm is applied in reverse to encrypt the packet.
 
 #### API Usage
 
+<!--- examples/crypto.js --->
 ```js
 import { encrypt, decrypt } from 'zbtk/crypto';
 
@@ -344,6 +345,7 @@ decrypt(data, nk, src64, fc, scf, aad, mic).equals(Buffer.from('40020102040101ef
 
 In order to register pre-configured keys, i.e. well-known network keys, used in the [`parse.js`](#zbtk-parse) tool for decrypting network packets on the fly, use the `pk()` function:
 
+<!--- examples/pks.js --->
 ```js
 import { pks, pk } from 'zbtk/crypto';
 
@@ -376,13 +378,13 @@ Options:
 
 Examples:
   zbtk encrypt --nk 52f0fe8052ebb35907daa243c95a2ff4  Encrypt the given data
-   --src64 0db123feffa7db28 --fc 148a0700 --scf 28 -
-  -aad 48220000777f1e2028148a07000db123feffa7db2800
+  --src64 0db123feffa7db28 --fc 148a0700 --scf 28
+  --aad 48220000777f1e2028148a07000db123feffa7db2800
   40020102040101ef0c2112100a014029a806
-  echo -n 40020102040101ef0c2112100a014029a806 | zbt  Decrypt the given data
-  k encrypt --nk 52f0fe8052ebb35907daa243c95a2ff4 --
-  src64 0db123feffa7db28 --fc 148a0700 --scf 28 --aa
-  d 48220000777f1e2028148a07000db123feffa7db2800
+  echo -n 40020102040101ef0c2112100a014029a806 |      Decrypt the given data
+  zbtk encrypt --nk 52f0fe8052ebb35907daa243c95a2ff4
+  --src64 0db123feffa7db28 --fc 148a0700 --scf 28
+  --aad 48220000777f1e2028148a07000db123feffa7db2800
 ```
 
 ##### Decryption
@@ -407,11 +409,11 @@ Options:
 
 Examples:
   zbtk decrypt --nk 52f0fe8052ebb35907daa243c95a2ff4 --src64 0db123feffa7db28 --fc 148a0700 --scf
-  28 --aad 48220000777f1e2028148a07000db123feffa7db2800 --mic 1d37730e 4235bf415d82f5f46c205476a2e
-  6e3d23bfa
-  echo -n 4235bf415d82f5f46c205476a2e6e3d23bfa | zbtk decrypt --nk 52f0fe8052ebb35907daa243c95a2ff
-  4 --src64 0db123feffa7db28 --fc 148a0700 --scf 28 --aad 48220000777f1e2028148a07000db123feffa7db
-  2800 --mic 1d37730e
+  28 --aad 48220000777f1e2028148a07000db123feffa7db2800 --mic 1d37730e
+  4235bf415d82f5f46c205476a2e6e3d23bfa
+  echo -n 4235bf415d82f5f46c205476a2e6e3d23bfa | zbtk decrypt --nk
+  52f0fe8052ebb35907daa243c95a2ff4 --src64 0db123feffa7db28 --fc 148a0700 --scf 28 --aad
+  48220000777f1e2028148a07000db123feffa7db2800 --mic 1d37730e
 ```
 
 #### Environment Variables
@@ -426,6 +428,7 @@ This tool provides different ZigBee specific formatting functions, e.g. for spec
 
 #### API Usage
 
+<!--- examples/format.js --->
 ```js
 import { ic, eui } from 'zbtk/format';
 
@@ -449,8 +452,8 @@ Options:
   --help     Show help                                                                     [boolean]
 
 Examples:
-  zbtk format ic 83fed3407a939723a5c639b26916d505c3b  Format the given data as an Install Code
-  5
+  zbtk format ic                                      Format the given data as an Install Code
+  83fed3407a939723a5c639b26916d505c3b5
   zbtk format eui 01000000006f0d00                    Format the given data as an EUI
 ```
 
@@ -468,6 +471,7 @@ This tool calculates ZigBee specific hash / checksum values for a given input. F
 
 #### API Usage
 
+<!--- examples/hash.js --->
 ```js
 import { crc, mmo, key } from 'zbtk/hash';
 
@@ -494,14 +498,14 @@ Options:
       --help     Show help                                                                 [boolean]
 
 Examples:
-  zbtk crc 83fed3407a939723a5c639b26916d505           Calculate the CRC-16 checksum for the given da
-                                                      ta
+  zbtk crc 83fed3407a939723a5c639b26916d505           Calculate the CRC-16 checksum for the given
+                                                      data
   zbtk mmo 83fed3407a939723a5c639b26916d505c3b5       Calculate the Matyas-Meyer-Oseas (MMO) Hash of
-                                                       the given data
+                                                      the given data
   zbtk key 66b6900981e1ee3ca4206b6b861c02bb --input   Calculate a key-based MMO hash, with the given
-  0                                                    input nonce
-  echo -n 83fed3407a939723a5c639b26916d505 | zbtk cr  Use the non-streamed standard input to calcula
-  c                                                   te the CRC-16
+  0                                                   input nonce
+  echo -n 83fed3407a939723a5c639b26916d505 | zbtk     Use the non-streamed standard input to
+  crc                                                 calculate the CRC-16
 ```
 <!--- cSpell:enable --->
 
@@ -511,6 +515,7 @@ This tool provides a collection of different utility functions in regards to the
 
 #### API Usage
 
+<!--- examples/ic.js --->
 ```js
 import { validate, checksum, format, link } from 'zbtk/ic';
 
@@ -538,14 +543,14 @@ Options:
   --help     Show help                                                                     [boolean]
 
 Examples:
-  zbtk ic validate 83fed3407a939723a5c639b26916d505c  Validate the given Install Code
-  3b5
-  zbtk ic checksum 83fed3407a939723a5c639b26916d505   Calculate the CRC checksum for the given Insta
-                                                      ll Code
-  zbtk ic format 83fed3407a939723a5c639b26916d505c3b  Format the given Install Code
-  5
-  zbtk ic link 83fed3407a939723a5c639b26916d505c3b5   Calculate the Link Key for the given Install C
-                                                      ode
+  zbtk ic validate                                    Validate the given Install Code
+  83fed3407a939723a5c639b26916d505c3b5
+  zbtk ic checksum 83fed3407a939723a5c639b26916d505   Calculate the CRC checksum for the given
+                                                      Install Code
+  zbtk ic format                                      Format the given Install Code
+  83fed3407a939723a5c639b26916d505c3b5
+  zbtk ic link 83fed3407a939723a5c639b26916d505c3b5   Calculate the Link Key for the given Install
+                                                      Code
 ```
 <!--- cSpell:enable --->
 
@@ -571,13 +576,14 @@ The `parse.js` tool will automatically attempt decrypting encrypted ZigBee packe
 #### API Usage
 
 <!--- cSpell:disable --->
+<!--- examples/parse.js --->
 ```js
 import { pk } from 'zbtk/crypto';
 import { parse } from 'zbtk/parse';
 
 pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex')); // register the network key as pre-configured key for automatic decryption of the parsed packets
 
-`${parse(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex'))}` === '{"protocol_id":"EX","version":2,"type":1,"channel_id":19,"device_id":65534,"lqi_mode":0,"lqi":41,"time":{"$hex":"d84f48995f78359c"},"seqno":692650,"length":5,"wpan":{"fcf":{"$hex":"0200"},"fc":{"reserved":false,"pan_id_compression":false,"ack_request":false,"pending":false,"security":false,"type":2,"src_addr_mode":0,"version":0,"dst_addr_mode":0,"ie_present":false,"seqno_suppression":false},"seq_no":63,"ti_cc24xx_metadata":{"$hex":"fecb"}}}';
+`${parse(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex'), 'zep')}` === '{"protocol_id":"EX","version":2,"type":1,"channel_id":19,"device_id":65534,"lqi_mode":0,"lqi":41,"time":{"$hex":"d84f48995f78359c"},"seqno":692650,"length":5,"wpan":{"fcf":{"$hex":"0200"},"fc":{"reserved":false,"pan_id_compression":false,"ack_request":false,"pending":false,"security":false,"type":2,"src_addr_mode":0,"version":0,"dst_addr_mode":0,"ie_present":false,"seqno_suppression":false},"seq_no":63,"ti_cc24xx_metadata":{"$hex":"fecb"}}}';
 ```
 <!--- cSpell:enable --->
 
@@ -593,17 +599,19 @@ Positionals:
   data  Data to parse                                                                       [string]
 
 Options:
-  --version  Show version number                                                           [boolean]
-  --type     Type of packet to parse
-  [string] [choices: "zbee_zdp", "zbee_zcl", "zbee_aps_cmd", "zbee_aps_secure", "zbee_aps", "zbee_nw
-   k_cmd", "zbee_cmd", "zbee_nwk_secure", "zbee_nwk", "zbee_beacon", "wpan", "zep"] [default: "zep"]
-  --help     Show help                                                                     [boolean]
+      --version  Show version number                                                       [boolean]
+  -t, --type     Type of packet to parse
+           [string] [choices: "zbee_zdp", "zbee_zcl", "zbee_aps_cmd", "zbee_aps_secure", "zbee_aps",
+  "zbee_nwk_cmd", "zbee_cmd", "zbee_nwk_secure", "zbee_nwk", "zbee_beacon", "wpan", "zep"] [default:
+                                                                                             "wpan"]
+      --help     Show help                                                                 [boolean]
 
 Examples:
-  zbtk parse 4558020113fffe0029d84f48995f78359c000a9  Parse the given data as a ZigBee Encapsulation
-  1aa000000000000000000000502003ffecb                  Protocol (ZEP) packet
-  echo -n 4558020113fffe0029d84f48995f78359c000a91aa  Parse the given data from stdin as a ZigBee En
-  000000000000000000000502003ffecb | zbtk parse       capsulation Protocol (ZEP) packet
+  zbtk parse --type zep 4558020113fffe0029d84f48995f  Parse the given data as a ZigBee Encapsulation
+  78359c000a91aa000000000000000000000502003ffecb      Protocol (ZEP) packet
+  echo -n 4558020113fffe0029d84f48995f78359c000a91aa  Parse the given data from stdin as a ZigBee
+  000000000000000000000502003ffecb | zbtk parse       Encapsulation Protocol (ZEP) packet
+  --type zep
 ```
 <!--- cSpell:enable --->
 
@@ -619,10 +627,11 @@ This tool is a helper to determine the packet type of a parsed or raw ZigBee pac
 
 #### API Usage
 
+<!--- examples/type.js --->
 ```js
 import getPacketType from 'zbtk/type';
 
-getPacketType(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex')) === 'WPAN_ACK';
+getPacketType(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex'), 'zep') === 'WPAN_ACK';
 ```
 
 #### CLI Usage
@@ -639,15 +648,15 @@ Positionals:
 Options:
   --version  Show version number                                                           [boolean]
   --type     Type of packet to determine the type for
-  [string] [choices: "zbee_zcl_cmd", "zbee_zcl", "zbee_zdp", "zbee_aps_cmd", "zbee_aps", "zbee_nwk_c
-                                        md", "zbee_nwk", "wpan_cmd", "wpan", "zep"] [default: "zep"]
+              [string] [choices: "zbee_zcl_cmd", "zbee_zcl", "zbee_zdp", "zbee_aps_cmd", "zbee_aps",
+                             "zbee_nwk_cmd", "zbee_nwk", "wpan_cmd", "wpan", "zep"] [default: "zep"]
   --help     Show help                                                                     [boolean]
 
 Examples:
-  zbtk type 4558020113fffe0029d84f48995f78359c000a91  Determine the type of ZigBee Encapsulation Pro
-  aa000000000000000000000502003ffecb                  tocol (ZEP) packet
-  echo -n 4558020113fffe0029d84f48995f78359c000a91aa  Determine the type of a ZigBee Encapsulation P
-  000000000000000000000502003ffecb | zbtk type        rotocol (ZEP) packet from stdin
+  zbtk type 4558020113fffe0029d84f48995f78359c000a91  Determine the type of ZigBee Encapsulation
+  aa000000000000000000000502003ffecb                  Protocol (ZEP) packet
+  echo -n 4558020113fffe0029d84f48995f78359c000a91aa  Determine the type of a ZigBee Encapsulation
+  000000000000000000000502003ffecb | zbtk type        Protocol (ZEP) packet from stdin
 ```
 <!--- cSpell:enable --->
 
@@ -657,45 +666,76 @@ This section walks through some end-to-end use-cases of the ZigBee Toolkit by ex
 
 ### Capturing Attributes of Devices in an encrypted ZigBee Network
 
-This example guides through the process of capturing / tracking attributes of ZigBee devices in an existing encrypted ZigBee network. This is useful in case you do not have access the the ZigBee bridge / coordinator, for example because it is a proprietary / manufacturer specific bridge, or you are not willing to replace an existing ZigBee bridge for an open-source implementation like [ZigBee2MQTT](https://www.zigbee2mqtt.io/). In this example we want track thermostats (TRVs) of an existing Viessmann ViCare ZigBee network. Viessmann doesn't provide any local API to access the TRVs data and their cloud-based API requires a monthly subscription and requires an internet connection to work. Thus this guide shows you how to:
+This example guides you through the process of capturing / tracing attributes of ZigBee devices in an existing and encrypted ZigBee network. This is useful in case you do not have access to the the ZigBee bridge / coordinator, for example because it is a proprietary / manufacturer specific bridge, or you are not willing to replace an existing ZigBee bridge for an open-source implementation like [ZigBee2MQTT](https://www.zigbee2mqtt.io/). The upcoming example focusses on capturing attributes from thermostats (so called "TRVs") from an existing Viessmann ViCare ZigBee network. However the same mechanism / approach that is described here in this guide, should be applicable to any other ZigBee network, that you want to capture packets from as well. This this guide shows you how to:
 
-- Monitor an existing encrypted ZigBee network
-- Be able to extract attributes from packets sent to / from the devices (like TRVs)
+- Monitor / capture an existing encrypted ZigBee network
+- Extract attributes from packets sent to / from the devices (like TRVs)
 - Feed those attributes into my MQTT broker (e.g. for further processing in Home Assistant)
 - All whilst staying local network / not requiring any internet connectivity
-- All that without interrupting the existing ZigBee networks internal workings
+- All that without interrupting the existing ZigBee networks internal workings / exchanging the broker
 
-Viessmann doesn't provide any access to neither their thermostat, nor bridge / coordinator implementation, thus this effort was facilitated by the development of the ZigBee Toolkit.
+Note that the ZigBee Toolkit is not affiliated with Viessmann (Group GmbH & Co. KG), ViCare, its products, or subsidiaries in any way, shape, or form. However, they do not provide any local API to access the TRVs data. Their cloud-based API requires a monthly subscription and an internet connection to work. Thus it became the leading use-case for me, that facilitated the development of the ZigBee Toolkit and an good example show-case for this guide as well.
 
-There is are many instructions online, on how to sniff into a existing ZigBee network. For example [this guide](https://www.zigbee2mqtt.io/advanced/zigbee/04_sniff_zigbee_traffic.html) from the ZigBee2MQTT project. In my case I decided to use a ready-to-use [Wireshark USB-Stick by Ubisys](https://www.ubisys.de/en/products/for-zigbee-product-developers/wireshark-usb-stick/) (see [tested capture devices](docs/tested-capture-devices.md)). What their [technical reference](https://www.ubisys.de/wp-content/uploads/ubisys-ieee802154-wireshark-manual.pdf) and the ZigBee2MQTT sniffing guide had in common was, that both assumed a encrypted network communication. However there are multiple types of security for ZigBee networks. The default is the so called "well-known" pre-shared key method, where the initial ZigBee traffic (that is used to exchange a so called "Transport Key") is sent encrypted with a well known, aka the `ZigBeeAlliance09` key: `5A:69:67:42:65:65:41:6C:6C:69:61:6E:63:65:30:39`.
+There are many instructions online, on how to sniff into an existing ZigBee network. For example [this excellent guide](https://www.zigbee2mqtt.io/advanced/zigbee/04_sniff_zigbee_traffic.html) from the ZigBee2MQTT project. Reading through that guide, to get a basic understanding about sniffing, is definitely helpful, but the instructions of this guide will step-by-step explain the process as well.
 
-This guide tackles it step-by-step, but in case of the Viessmann network another ("more secure") way of securing the network was chosen. It was protected with a so called "Link Key" that is based on the "Install Code" of the device that is about to join the network. Without jumping ahead, this is how to start capturing the data.
+First you will have to decide for the sniffing hardware to use. Many ZigBee USB-Sticks and / or network adapters will either support sniffing out of the box, or provide specific firmware, that can be flashed onto the device, to enable sniffing. Best refer to the [ZigBee2MQTT guide](https://www.zigbee2mqtt.io/advanced/zigbee/04_sniff_zigbee_traffic.html) and the [tested capture devices](docs/tested-capture-devices.md) list, for an overview.
+
+In my case I started with a "ready-to-use" solution, like the [Wireshark USB-Stick by Ubisys](https://www.ubisys.de/en/products/for-zigbee-product-developers/wireshark-usb-stick/), but ended up using the SMLIGHT SLZB-06M ethernet dongle instead, which struck me as the best balance between price to performance. I also successfully tested the toolkit with a (cheap) CC2531 adapter. Other capture sticks / adapters should work as well, as long as there is an interface / utility to generate a (P)CAP compatible stream, that can be piped into the ZigBee Toolkit.
 
 #### 1. Find Network Channel
 
-First step was to find out on which channel data is sent. ZigBee sends data on multiple channels, channel 11-26 to be exact. We have to determine the capture channel, before we can start capturing packets. In order to change the channel, refer to the manual of your capture device. In by case Ubisys provides a shell script on Linux:
+First step is to find out, on which channel data is sent. ZigBee sends data on multiple channels, channel 11-26 to be exact. We have to determine the capture channel, before we can start sniffing for packets. In order to change the channel, refer to the manual of your capture device. Below you will find some examples for setting the channel on different capture devices.
+
+Finding the right channel is more or less trial & error: Set a channel, start the packet capture and see if there is any traffic. Wait for couple of seconds, if you don't see data, rinse & repeat with the next channel. If you hit the right channel, you should see packet data.
+
+<details>
+  <summary><b>Ubisys IEEE 802.15.4 Wireshark USB Stick</b></summary>
+
+Make sure you followed the [set-up instructions](https://www.ubisys.de/wp-content/uploads/ubisys-ieee802154-wireshark-manual.pdf) for the Ubisys stick, from Ubisys website. Afterwards to set a channel on Linux, use the shell script Ubisys provides you with:
 
 ```bash
-sudo ./ieee802154_options.sh –c 11
+sudo ./ieee802154_options.sh -c 19
 ```
 
-Or you can set it using this command on in an elevated PowerShell on Windows:
+On Windows setting the channel is baked into the driver, to set it you can use a an elevated PowerShell:
 
 ```ps
-Set-NetAdapterAdvancedProperty -Name "ubisys Wireshark" -DisplayName "IEEE 802.15.4 Channel" -DisplayValue "11"
+Set-NetAdapterAdvancedProperty -Name "ubisys Wireshark" -DisplayName "IEEE 802.15.4 Channel" -DisplayValue "19"
 ```
 
-Finding the right channel was more or less trial & error: Set a channel, start the packet capture and see if there is any traffic:
+Continuing on Linux, set the interface `up` and check if any data is received:
 
 ```bash
-zbtk cap enx001fee00295e
+sudo ip link set dev enx001fee00295e up
+sudo tcpdump -n -i enx001fee00295e -vvv -s 0 'udp port 17754'
 ```
 
-Wait for couple of seconds, if you don't see data, rinse & repeat with the next channel. If you hit the right channel, you should see packet data like:
+You either will see no data at all, so switch channels, or you will see data from all channels and `tcpdump` will show you a message like `[...] ZEPv2 Type 1, Channel ID 19 [...]`, so the right channel is channel 19.
+</details>
+<details>
+  <summary><b>Generic CC2531 Dongle w/ TI Sniffer Firmware</b></summary>
 
-```json
-{"protocol_id":"EX","version":2,"type":1,"channel_id":19,"device_id":65534, ...} (WPAN_ACK)
+A CC2531 dongle with TI sniffer firmware does not expose a network interface, like e.g. the Ubisys stick does. Capturing happens through a tool, that talks to the USB device directly. Supposedly `dumpcap` can talk to `libusb` to do that, however we would recommend [`whsniff`](https://github.com/homewsn/whsniff), as we can and will use it later on to pipe (P)CAP data to the ZigBee Toolkit `cap` tool. Again check channel by channel and see if you see data flowing:
+
+```bash
+sudo whsniff -c 19 | tcpdump -vvv -r -
 ```
+</details> 
+<details>
+  <summary><b>SMLIGHT SLZB-06M Ethernet Dongle</b></summary>
+
+For SMLIGHT, we could make use of the `ember-zli`, for a detailed instructions visit the [`ember-zli` Wiki](https://github.com/Nerivec/ember-zli/wiki) and also check out their [specific guide on sniffing](https://github.com/Nerivec/ember-zli/wiki/Sniff). However as the ZigBee Toolkit will require a (P)CAP output on standard out (stdout) and the Ember ZLI provides no real CLI, we recommend to use [`ember-sniff`](https://github.com/kristian/ember-sniff), another tool, based on `ember-zli` just used for sniffing / outputting PCAP:
+
+```bash
+npm install -g ember-sniff
+```
+
+Connect the SMLIGHT dongle (or any other compatible EmberZNet or HUSBZB-1 adapter) via ethernet or USB. We will use ethernet here in this example. Again connect to your dongle and repeat the process until you found the channel sending data:
+
+```bash
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | tcpdump -vvv -r -
+```
+</details> 
 
 In my case the Viessmann network sent data on channel 19.
 
@@ -703,14 +743,18 @@ In my case the Viessmann network sent data on channel 19.
 
 After you have found the right channel to capture data on, your next task is to capture the so called "Transport Key" of your network. The Transport Key is used by ZigBee to encrypt your networks data. You can capture a Transport Key every time a new device joins your network. This means in order to capture a Transport Key you will need either a new / spare device that can join your ZigBee network, or you will have to remove any of your existing TRVs and add it again in the next step.
 
-In order to not leave the traffic that contains the Transport Key unencrypted, by default ZigBee will encrypt the Transport Key data with a well-known pre-configured key, the so called "Trust Center Link Key". The default key, used by most ZigBee networks is called `ZigBeeAlliance09`. However there a other, manufacturer specific, link keys out there. In case of the ZigBee Toolkit you can set the `ZBTK_CRYPTO_WELL_KNOWN_PKS` environment variable, which will assume encrypted traffic with the `ZigBeeAlliance09` key and start the capture:
+In order to not leave the traffic that contains the Transport Key unencrypted, by default ZigBee will encrypt the Transport Key data with a well-known pre-configured key, the so called "Trust Center Link Key". This default key, used by most ZigBee networks, is called `ZigBeeAlliance09`. However there a other, manufacturer specific, link keys out there. In case of the ZigBee Toolkit you can set the `ZBTK_CRYPTO_WELL_KNOWN_PKS` environment variable, which will assume traffic is with the `ZigBeeAlliance09` key and start the capture.
+
+Please refer to the [tested capture devices](docs/tested-capture-devices.md) list, to find the command to start packet capture for your device with the ZigBee Toolkit. In our example, we will continue to use an SMLight / EmberZNet and HUSBZB-1 adapters. By replacing the program that pipes in the (P)CAP data, as well as the `-u` (unwrap) option, with the settings specific for your device, the following examples should work for all tested devices in the same way:
 
 ```bash
 export ZBTK_CRYPTO_WELL_KNOWN_PKS=1
-zbtk cap enx001fee00295e
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unrap
 ```
 
-As mentioned above, Viessmann however, uses a slightly more secure way of how devices join their ZigBee network. So you will only be able to capture encrypted packages, even if you try to have a device join the network. In order to be able to capture a Transport Key in this case, you first have to populate the so called "Link Key", that will be used to encrypt the traffic instead of the well-known key. The Link Key is based on the so called "Install Code" of the device that you are trying to add to the network. The Install Code is a 18 byte hexadecimal number sequence, mostly in tuples of two bytes separated by spaces, that you should find on the label of the device. So you will have to
+As said, ZigBee supports multiple types of secure key exchange. The default is the so called "well-known" pre-shared key method, where the initial ZigBee traffic (that is used to exchange a so called "Transport Key") is sent encrypted with a well known, aka the `ZigBeeAlliance09` key: `5A:69:67:42:65:65:41:6C:6C:69:61:6E:63:65:30:39`, as described above. So it will be enough to trust this pre-shared key and wait for any new device to join the network, which will then provide you access to your transport key.
+
+In case of the Viessmann however, they chose another another ("more safe") way of securing the network. It is protected with a so called "Link Key" that is based on the "Install Code" of the device that is about to join the network. So you will only be able to capture encrypted packages, even if you try to have a device join the network. In order to be able to capture a Transport Key in this case, you first have to populate the so called "Link Key", that will be used to encrypt the traffic instead of the well-known key. The Link Key is based on the so called "Install Code" of the device that you are trying to add to the network. The Install Code is a 18 byte hexadecimal number sequence, mostly in tuples of two bytes separated by spaces, that you should find on the label of the device. So you will have to
 
 ```text
 EE91 7C25 E941 23C2 27B9 3F4D 50A0 C34F 373D
@@ -740,7 +784,7 @@ Let's populate the Link Key to use, instead of the well-known `ZigBeeAlliance09`
 
 ```bash
 export ZBTK_CRYPTO_PKS=4c23a848a76f432113510a301c5fdfd2
-zbtk cap enx001fee00295e --log attribute
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unwrap -l attribute
 ```
 
 Depending of how much traffic is in your network, you should soon start seeing some "Packet encrypted" messages in the console:
@@ -783,13 +827,13 @@ export ZBTK_CRYPTO_PKS=52f0fe8052ebb35907daa243c95a2ff4
 As a last step, lets set-up automatically capturing attributes to your local MQTT broker. We can use the same [`cap.js`](#zbtk-cap) tool command to do so (don't forget to pre-publish your captured transport key, otherwise you won't be able to record any attributes):
 
 ```bash
-zbtk cap enx001fee00295e --mqtt-host localhost --mqtt-user mqtt --mqtt-pw abcdefg
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unwrap --mqtt-host localhost --mqtt-user mqtt --mqtt-pass abcdefg
 ```
 
 Please note that by specifying the MQTT parameters, the [`cap.js`](#zbtk-cap) tool will attempt to emit all attributes to MQTT instead of to the console. In case you would like to also log the attributes to console as before, use the following command instead:
 
 ```bash
-zbtk cap enx001fee00295e --mqtt-host localhost --mqtt-user mqtt --mqtt-pw abcdefg --log attribute
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unwrap --mqtt-host localhost --mqtt-user mqtt --mqtt-pass abcdefg --log attribute
 ```
 
 Check your MQTT broker, you should start seeing attributes of your network being populated.

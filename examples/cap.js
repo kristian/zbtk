@@ -1,11 +1,12 @@
-import { open as openCap } from '../cap.js';
+import { process as processCap } from '../cap.js';
 
 // set pre-configured keys for automatic decryption either via the
 // ZBTK_CRYPTO_PKS / ZBTK_CRYPTO_WELL_KNOWN_PKS env. variables or:
-// import { pk } from '../crypto.js';
-// pk('D0:D1:D2:D3:D4:D5:D6:D7:D8:D9:DA:DB:DC:DD:DE:DF');
+import { pk } from '../crypto.js';
+pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex'));
 
-const capSession = await openCap('device-id', {
+const capEmitter = await processCap('examples/trace.pcap', {
+  unwrapLayers: ['eth', 'ip4', 'udp', 'zep'], // the layers to unwrap to reach the WPAN/ZigBee layer for processing, defaults to []
   bufferSize: 10 * 1024 * 1024, // in bytes, defaults to 10 MB
   emit: ['attribute'], // defaults to "attribute", one, multiple of: "data", "packet", "attribute"
   out: {
@@ -22,20 +23,20 @@ const capSession = await openCap('device-id', {
   }
 });
 
-capSession.on('data', function(data, context) {
+capEmitter.on('data', function(data, context) {
   // the raw / unparsed packet data, in case the packet was
   // parsed (e.g. due to "packet" being set in the emit
   // options), context already includes the parsed packet
   const { packet, type } = context;
 });
-capSession.on('packet', function(packet, context) {
+capEmitter.on('packet', function(packet, context) {
   // parsed / decrypted in case "packet" is set in the emit
   // options and decrypted in case of any pre-configured key
   // matched to decrypt the packet contents. context includes:
   const { data, type } = context;
 });
 
-capSession.on('attribute', function(attr, context) {
+capEmitter.on('attribute', function(attr, context) {
   const {
     id, // the 2-byte ID of the attribute in the cluster (in big-endian notation)
     type, // the 2-byte type of the attribute
@@ -54,4 +55,4 @@ capSession.on('attribute', function(attr, context) {
   } = context;
 });
 
-await capSession.close();
+await capEmitter.close();

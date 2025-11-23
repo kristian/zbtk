@@ -482,13 +482,16 @@ types.zep = packet => {
 /**
  * Determine the type of a ZigBee packet
  *
+ * By default it will parse the data as a IEEE 802.15.4 Low-Rate Wireless PAN (WPAN) packet.
+ * Other packet types, like ZigBee Encapsulation Protocol (ZEP) packets, can be parsed by specifying the type.
+ *
  * @param {Buffer|object} packet the ZigBee packet data
- * @param {string} [type='zep'] the type of packet to determine the type for
+ * @param {string} [type='wpan'] the type of packet to determine the type for
  * @returns {string} the type of packet
  */
-export default function type(packet, type = 'zep') {
+export default function type(packet, type = 'wpan') {
   if (Buffer.isBuffer(packet)) {
-    packet = parsePacket(packet);
+    packet = parsePacket(packet, type);
   }
 
   if (!(type in types)) {
