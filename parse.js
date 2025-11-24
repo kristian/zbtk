@@ -437,6 +437,28 @@ parsers.zbee_zdp = new Parser()
         .uint8('dst_ep'),
       0x8021: new Parser(), // Bind Response
 
+      0x0031: new Parser() // LQI Request
+        .uint8('index'),
+      0x8031: new Parser() // LQI Response
+        .uint8('table_size')
+        .uint8('index')
+        .uint8('table_count')
+        .array('entries', {
+          length: 'table_count',
+          type: new Parser()
+            .buffer('extended_pan', { length: 8 }) // le
+            .buffer('ext_addr', { length: 8 }) // le
+            .buffer('addr', { length: 2 }) // le
+            .bit1('$unused')
+            .bit3('relationship')
+            .bit2('idle_rx', { formatter: formatters.bool })
+            .bit2('type')
+            .bit6('$unused')
+            .bit2('permit_joining', { formatter: formatters.bool })
+            .uint8('depth')
+            .uint8('lqi')
+        }),
+
       0x0032: new Parser() // Routing Table Request
         .uint8('index'),
       0x8032: new Parser() // Routing Table Response

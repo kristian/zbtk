@@ -1,0 +1,100 @@
+{
+  "fcf": {
+    "$hex": "6188"
+  },
+  "fc": {
+    "reserved": false,
+    "pan_id_compression": true,
+    "ack_request": true,
+    "pending": false,
+    "security": false,
+    "type": 1,
+    "src_addr_mode": 2,
+    "version": 0,
+    "dst_addr_mode": 2,
+    "ie_present": false,
+    "seqno_suppression": false
+  },
+  "seq_no": 227,
+  "dst_pan": {
+    "$hex": "bf18"
+  },
+  "dst16": {
+    "$hex": "2cda"
+  },
+  "src16": {
+    "$hex": "0000"
+  },
+  "zbee_nwk": {
+    "fcf": {
+      "$hex": "0802"
+    },
+    "fc": {
+      "discovery": 0,
+      "proto_version": 2,
+      "type": 0,
+      "end_device_initiator": false,
+      "ext_src": false,
+      "ext_dst": false,
+      "src_route": false,
+      "security": true,
+      "multicast": false
+    },
+    "dst": {
+      "$hex": "2cda"
+    },
+    "src": {
+      "$hex": "0000"
+    },
+    "radius": 30,
+    "seqno": 63,
+    "sec": {
+      "scf": {
+        "$hex": "28"
+      },
+      "sc": {
+        "verified_fc": 0,
+        "ext_nonce": true,
+        "key_id": 1,
+        "sec_level": 0
+      },
+      "counter": 29197705,
+      "src64": {
+        "$hex": "1ab0f7fefff9e3b4"
+      },
+      "key_seqno": 0,
+      "mic": {
+        "$hex": "29e42d46"
+      }
+    },
+    "zbee_aps": {
+      "fcf": {
+        "$hex": "40"
+      },
+      "fc": {
+        "ext_header": false,
+        "ack_req": true,
+        "security": false,
+        "ack_format": false,
+        "delivery": 0,
+        "type": 0
+      },
+      "dst": 0,
+      "cluster": {
+        "$hex": "3100"
+      },
+      "profile": {
+        "$hex": "0000"
+      },
+      "src": 0,
+      "counter": 132,
+      "zbee_zdp": {
+        "seqno": 102,
+        "index": 0
+      }
+    }
+  },
+  "fcs": {
+    "$hex": "a03f"
+  }
+}

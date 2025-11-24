@@ -10,7 +10,8 @@ import { jsonParse, getCliOutput } from './utils.js';
 import { default as tools, commands } from './tools.js';
 
 // set pre-shared key(s) used in tests for decryption
-tools.crypto.pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex')); // transport key
+tools.crypto.pk(Buffer.from('52f0fe8052ebb35907daa243c95a2ff4', 'hex')); // transport key 1
+tools.crypto.pk(Buffer.from('75d76b7488a97eca4de4a363fabd9377', 'hex')); // transport key 2
 tools.crypto.pk(Buffer.from('4c23a848a76f432113510a301c5fdfd2', 'hex')); // link key for install code EE91 7C25 E941 23C2 27B9 3F4D 50A0 C34F 373D
 
 env.ZBTK_PARSE_FAIL_DECRYPT = '1';
