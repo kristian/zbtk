@@ -205,7 +205,8 @@ Options:
                            [array] [choices: "data", "packet", "attribute"] [default: ["attribute"]]
   -l, --log                                          Log outputs, defaults "info", if no output MQTT
                                                      also to "packet", --no-log to disable
-         [array] [choices: false, "data", "packet", "attribute", "info", "warn", "error", "verbose"]
+         [array] [choices: false, "data", "packet", "attribute", "verbose", "info", "warn", "error",
+                                                                                           "silent"]
   -f, --filter                                       Filter packets to emit / log (whence
                                                      expression)                            [string]
       --mqtt-host, --mh                              MQTT broker host                       [string]

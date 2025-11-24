@@ -113,7 +113,7 @@ export default { process };
  * @param {(string|string[])} [options.emit=['attribute']] the events to emit via the returned EventEmitter and MQTT in case MQTT options are supplied, either one of 'data', 'packet' (WPAN) and/or 'attribute', 'error' events always getting emitted from the returned EventEmitter regardless of the settings
  * @param {string|object|(context: object) => Promise<boolean>} [options.filter] the filter to apply to the packets, a eval-estree-expression expression (see https://github.com/jonschlinkert/eval-estree-expression?tab=readme-ov-file#examples), estree-compatible expression AST, or filter function
  * @param {object} [options.out] the output options
- * @param {(boolean|string|string[])} [options.out.log] the events to log, any 'data', 'packet' (WPAN) and / or 'attribute', additionally 'verbose', 'info', 'warn' or 'error' sets the log-level, default is 'info'. true to log all emitted events as well as enable 'info' logging, false to disable logging entirely
+ * @param {(boolean|string|string[])} [options.out.log] the events to log, any 'data', 'packet' (WPAN) and / or 'attribute', additionally 'verbose', 'info', 'warn', 'error' or 'silent' sets the log-level, default is 'info'. true to log all emitted events as well as enable 'info' logging, false to disable logging entirely
  * @param {object} [options.out.mqtt] the MQTT output options
  * @param {string} [options.out.mqtt.url] the MQTT broker URL
  * @param {object} [options.out.mqtt.options] the MQTT connection options
@@ -168,7 +168,7 @@ export async function process(input = stdin, options) {
     log.delete('warn') && (logLevel = 2);
     log.delete('info') && (logLevel = 3);
     log.delete('verbose') && (logLevel = 4);
-    logLevel = logLevel || 3; // default to info if no other log level is set
+    logLevel = log.delete('silent') ? 0 : (logLevel || 3); // default to info if no other log level is set
   }
   const events = new Set([...emit, ...log]); // union
   events.delete('error');
@@ -453,7 +453,7 @@ export const command = {
       alias: 'l',
       desc: 'Log outputs, defaults "info", if no output MQTT also to "packet", --no-log to disable',
       type: 'array',
-      choices: [false, 'data', 'packet', 'attribute', 'info', 'warn', 'error', 'verbose']
+      choices: [false, 'data', 'packet', 'attribute', 'verbose', 'info', 'warn', 'error', 'silent']
     })
     .option('filter', {
       alias: 'f',
