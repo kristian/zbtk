@@ -33,6 +33,89 @@ sudo ip link set dev enx001fee00295e up
 sudo tcpdump -n -i enx001fee00295e -s 0 -w - udp port 17754 | zbtk cap -u eth,ip4,udp,zep
 ```
 
+<details>
+  <summary><b>Full step-by-step set-up guide (Linux kernel patching, etc.)</b></summary>
+
+This guide will follow you through the [manual provided by Ubisys](https://www.ubisys.de/wp-content/uploads/ubisys-ieee802154-wireshark-manual.pdf). First, grab yourself the Linux headers and kernel package required, in order to re-compile the needed network interface driver:
+
+```bash
+sudo apt-get update && sudo apt-get install -y linux-headers-$(uname –r) linux-libc-dev kernel-package
+```
+
+You can grab yourself a cup of coffee / tee, this will take some time to download and set-up.
+
+After the installation is done, run `uname -r` to get the major / minor release of your Linux kernel, in my case `6.6.51+rpt-rpi-v7`, so 6.6. Proceed by downloading the Linux kernel sources:
+
+```bash
+sudo nano /etc/apt/sources.list
+```
+
+Uncomment the `deb-src` line at the end of the file, exit and save. Then proceed downloading the kernel sources for your release:
+
+```bash
+cd /usr/src
+sudo apt-get update && sudo apt-get source linux-source-6.6
+```
+
+Download and extract the Ubisys IEEE 802.15.4 Wireshark USB stick driver package for Linux:
+
+```bash
+cd
+wget http://www.ubisys.de/downloads/ubisys-m7b-rndis.tgz
+tar -xzf ubisys-m7b-rndis.tgz
+```
+
+Copy the `rndis_host.c` file from the Linux kernel sources to the Ubisys driver folder, to patch it in the next step:
+
+```bash
+cd ubisys-m7b-rndis
+cp /usr/src/linux-6*/drivers/net/usb/rndis_host.c .
+```
+
+Now patch the kernel module (note that is okay that some hunks cannot be applied), then `make` and `sudo make install` to apply the patch:
+
+```bash
+patch rndis_host.c rndis_host.c.patch
+make
+sudo make install
+```
+
+In my case (as tested February 17th 2025), patching the Debian 12 Bookworm sources on Kernel version `6.6.51+rpt-rpi-v7`, resulted in a compilation error on the `make` command. This is due to some renamed constants in the patch / driver. I had to patch the patch with:
+
+```batch
+sed -i 's/OID_STR(OID_/OID_STR(RNDIS_OID_/g' rndis_host.c
+```
+
+Afterwards repeat the `make` / `sudo make install`, which should now succeed. As a last step, as recommended by Ubisys, lets disable IPv6 for the interface:
+
+```bash
+echo "net.ipv6.conf.eth1.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+```
+
+Validate that the `rndis_host` driver is currently not loaded. In case it is loaded, unload it before plugging in the USB capture stick to your Raspberry Pi:
+
+```batch
+lsmod
+sudo rmmod rndis_wlan rndis_host
+```
+
+You are ready to plug-in your capture USB stick now. After plugging in the USB stick, use `dmesg` to check which interface the USB stick uses:
+
+```batch
+[547.998233] usb 1-1.4: new full-speed USB device number 4 using dwc_otg
+[547.133729] usb 1-1.4: New USB device found, idVendor=19a6, idProduct=000a, bcdDevice= 1.05
+...
+[547.704199] rndis_host 1-1.4:1.0: RNDIS_MSG_QUERY(0x00010202) failed, -47
+[547.707819] rndis_host ieee802154 channel is 11
+[547.714346] rndis_host 1-1.4:1.0 eth1: register 'rndis_host' at usb-3f980000.usb-1.4, RNDIS device, 00:1f:ee:00:29:5e
+[547.714591] usbcore: registered new interface driver rndis_host
+[547.726540] usbcore: registered new interface driver rndis_wlan
+```
+
+As you can see in line `547.707819` the patch was applied successfully and ZigBee channel 11 was enabled, and in the following line `547.714346` you see that the interface name in my case was `eth1`. 
+</details>
+
 ## Generic CC2531 Dongle w/ TI Sniffer Firmware 
 
 ![CC2531 Dongle](cc2531.png)
