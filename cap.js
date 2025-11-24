@@ -96,10 +96,7 @@ const unwrapFunctions = { // functions with interface (data: Buffer, nextLayer: 
     layers: {
       'zep': 17754
     }
-  }),
-  'zep': (data, nextLayer, logger) => {
-    return parseZep(data).wpan;
-  }
+  })
 };
 
 export default { process };
@@ -109,7 +106,7 @@ export default { process };
  *
  * @param {(string|ReadableStream)} [input=process.stdin] the input to read the PCAP data from, either a PCAP string or a `ReadableStream` (e.g. process.stdin)
  * @param {object} [options] the capture options
- * @param {(string|(data: Buffer, nextLayer: (string|(data: Buffer) => Buffer), logger: object) => Buffer|(string|(data: Buffer, nextLayer: (string|(data: Buffer) => Buffer), logger: object) => Buffer)[])} [options.unwrapLayers] the layers to unwrap to get to the WPAN package / layer, either one of 'eth', 'ip4', 'ip6', 'tcp', 'udp', 'zep', or a plain function transforming a `Buffer` or an array of those, in order of unwrapping to occur
+ * @param {(string|(data: Buffer, nextLayer: (string|(data: Buffer) => Buffer), logger: object) => Buffer|(string|(data: Buffer, nextLayer: (string|(data: Buffer) => Buffer), logger: object) => Buffer)[])} [options.unwrapLayers] the layers to unwrap to get to the WPAN package / layer, either one of 'eth', 'ip4', 'ip6', 'tcp', 'udp', 'zep', or a plain function transforming a `Buffer` or an array of those, in order of unwrapping to occur. Note that if the last layer is set to 'zep', the parser will automatically switch to parsing ZEP packets instead of WPAN packets. Also filters, logs and emitted packets will be based on the ZEP instead of the WPAN layer.
  * @param {(string|string[])} [options.emit=['attribute']] the events to emit via the returned EventEmitter and MQTT in case MQTT options are supplied, either one of 'data', 'packet' (WPAN) and/or 'attribute', 'error' events always getting emitted from the returned EventEmitter regardless of the settings
  * @param {string|object|(context: object) => Promise<boolean>} [options.filter] the filter to apply to the packets, a eval-estree-expression expression (see https://github.com/jonschlinkert/eval-estree-expression?tab=readme-ov-file#examples), estree-compatible expression AST, or filter function
  * @param {object} [options.out] the output options
@@ -180,8 +177,13 @@ export async function process(input = stdin, options) {
     filter = whence.compile(options.filter);
   }
 
-  let unwrap = (data, logger) => data; // by default a no-op, but if unwrapLayers are defined, a pre-compiled list of unwrap functions
+  let parseType = 'wpan', // by default parse IEEE 802.15.4 Low-Rate Wireless PAN (WPAN) packets, special case the last unwrap layer is 'zep'
+    unwrap = (data, logger) => data; // by default a no-op, but if unwrapLayers are defined, a pre-compiled list of unwrap functions;
   const unwrapLayers = (options?.unwrapLayers && (Array.isArray(options.unwrapLayers) ? options.unwrapLayers : [options.unwrapLayers])) || [];
+  if (unwrapLayers.length && unwrapLayers[unwrapLayers.length - 1] === 'zep') {
+    parseType = 'zep'; // set the parser to parse ZigBee Encapsulation Protocol (ZEP) packets, to account for the last unwrap layer
+    unwrapLayers.pop();
+  }
   unwrapLayers.forEach((layer, index) => {
     let unwrapFunction = typeof layer === 'function' ? layer : unwrapFunctions[layer];
     if (typeof unwrapFunction !== 'function') {
@@ -250,7 +252,7 @@ export async function process(input = stdin, options) {
     // parse the packet only if a filter is defined or if we are going to emit / log the parsed packet or its attributes
     if (filter || (events.has('packet') || events.has('attribute'))) {
       try {
-        packet = Object.defineProperty(parsePacket(data), 'toString', {
+        packet = Object.defineProperty(parsePacket(data, parseType), 'toString', {
           value: function() {
             return packetStr || (packetStr = jsonStringify(this));
           }
@@ -261,7 +263,7 @@ export async function process(input = stdin, options) {
 
       if (packet && !packetErr) {
         try {
-          packetType = getPacketType(packet);
+          packetType = getPacketType(packet, parseType);
         } catch (err) {
           logger.error('Failed to determine packet type!', data.toString('hex'), err);
           // nothing to do here
@@ -275,8 +277,9 @@ export async function process(input = stdin, options) {
       packetType = 'NOT_PARSED';
     }
 
+    const wpan = parseType === 'zep' ? packet?.wpan : packet;
     if (packetType === 'APS_CMD_TRANSPORT_KEY') {
-      const key = packet?.zbee_nwk?.zbee_aps?.cmd?.key;
+      const key = wpan?.zbee_nwk?.zbee_aps?.cmd?.key;
       if (Buffer.isBuffer(key)) {
         const newPk = pk(key);
 
@@ -333,7 +336,7 @@ export async function process(input = stdin, options) {
       return;
     }
 
-    const zbee_nwk = packet.zbee_nwk;
+    const zbee_nwk = wpan.zbee_nwk;
     if (!zbee_nwk) {
       return;
     }
@@ -348,7 +351,7 @@ export async function process(input = stdin, options) {
           populateAddressTable(zbee_nwk.dst64, zbee_nwk.dst);
         }
         if (zbee_nwk.sec) {
-          populateAddressTable(zbee_nwk.sec.src64, packet.src16); // packet=WPAN -> src16 address
+          populateAddressTable(zbee_nwk.sec.src64, wpan.src16);
           if (zbee_nwk.fc.end_device_initiator) {
             populateAddressTable(zbee_nwk.sec.src64, zbee_nwk.src);
           }

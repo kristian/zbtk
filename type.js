@@ -476,7 +476,7 @@ types.zep = packet => {
     return types.wpan(packet?.wpan);
   }
 
-  return 'UNKNOWN';
+  return 'ZEP_UNKNOWN';
 };
 
 /**
