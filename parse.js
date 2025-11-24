@@ -40,6 +40,16 @@ function optional(name, options) {
   };
 }
 
+function assertFunction(text, fn) {
+  const textFunction = function() {
+    return fn.apply(this, arguments);
+  };
+  textFunction.toString = function() {
+    return typeof text === 'function' ? text.apply(this, arguments) : text;
+  };
+  return textFunction;
+}
+
 function parent(context, field) {
   while (context) {
     if (field in context) {
@@ -1067,12 +1077,12 @@ parsers.wpan = new Parser()
   })
   .buffer('fcs', {
     length: 2,
-    assert: function(fcs) {
+    assert: assertFunction('a mismatch to the calculated CRC', function(fcs) {
       // provide the option to skip the FCS check, as sometimes frames come with a CC24xx metadata instead of a FCS (i.e. some sniffers validate the CRC
       // themselves and replace the FCS with other data, such as LQI / RSSI). in case the packet is part of a ZEP, the FCS is checked when encoding the ZEP package.
       // otherwise calculate the CRC-16/CCITT style for the IEEE 802.15.4 FCS (xor-in & out = 0x0000, poly = 0x1021)
       return env.ZBTK_PARSE_SKIP_FCS_CHECK || parent(this, '$zep') || fcs.equals(crc(this.$wpanData.subarray(0, this.$wpanLength - 2), 0x0000, 0x0000));
-    }
+    })
   });
 
 // ZigBee Encapsulation Protocol
