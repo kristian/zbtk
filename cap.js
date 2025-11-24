@@ -181,7 +181,7 @@ export async function process(input = stdin, options) {
   }
 
   let unwrap = (data, logger) => data; // by default a no-op, but if unwrapLayers are defined, a pre-compiled list of unwrap functions
-  const unwrapLayers = options?.unwrapLayers ? (Array.isArray(options.unwrapLayers) ? options.unwrapLayers : [options.unwrapLayers]) : [];
+  const unwrapLayers = (options?.unwrapLayers && (Array.isArray(options.unwrapLayers) ? options.unwrapLayers : [options.unwrapLayers])) || [];
   unwrapLayers.forEach((layer, index) => {
     let unwrapFunction = typeof layer === 'function' ? layer : unwrapFunctions[layer];
     if (typeof unwrapFunction !== 'function') {
@@ -440,8 +440,7 @@ export const command = {
       alias: 'u',
       desc: 'Layers to unwrap to get to the WPAN packet',
       type: 'array',
-      choices: ['eth', 'ip4', 'ip6', 'tcp', 'udp', 'zep'],
-      default: ['zep']
+      choices: ['eth', 'ip4', 'ip6', 'tcp', 'udp', 'zep']
     })
     .option('emit', {
       alias: 'e',

@@ -214,7 +214,7 @@ Positionals:
 
 Options:
   -u, --unwrap                                       Layers to unwrap to get to the WPAN packet
-                      [array] [choices: "eth", "ip4", "ip6", "tcp", "udp", "zep"] [default: ["zep"]]
+                                         [array] [choices: "eth", "ip4", "ip6", "tcp", "udp", "zep"]
   -e, --emit                                         Events to emit to MQTT
                            [array] [choices: "data", "packet", "attribute"] [default: ["attribute"]]
   -l, --log                                          Log outputs, defaults "info", if no output MQTT
@@ -785,7 +785,7 @@ Let's populate the Link Key to use, instead of the well-known `ZigBeeAlliance09`
 
 ```bash
 export ZBTK_CRYPTO_PKS=4c23a848a76f432113510a301c5fdfd2
-ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unwrap -l attribute
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap -l attribute
 ```
 
 Depending of how much traffic is in your network, you should soon start seeing some "Packet encrypted" messages in the console:
@@ -828,13 +828,13 @@ export ZBTK_CRYPTO_PKS=52f0fe8052ebb35907daa243c95a2ff4
 As a last step, lets set-up automatically capturing attributes to your local MQTT broker. We can use the same [`cap.js`](#zbtk-cap) tool command to do so (don't forget to pre-publish your captured transport key, otherwise you won't be able to record any attributes):
 
 ```bash
-ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unwrap --mqtt-host localhost --mqtt-user mqtt --mqtt-pass abcdefg
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --mqtt-host localhost --mqtt-user mqtt --mqtt-pass abcdefg
 ```
 
 Please note that by specifying the MQTT parameters, the [`cap.js`](#zbtk-cap) tool will attempt to emit all attributes to MQTT instead of to the console. In case you would like to also log the attributes to console as before, use the following command instead:
 
 ```bash
-ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unwrap --mqtt-host localhost --mqtt-user mqtt --mqtt-pass abcdefg --log attribute
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --mqtt-host localhost --mqtt-user mqtt --mqtt-pass abcdefg --log attribute
 ```
 
 Check your MQTT broker, you should start seeing attributes of your network being populated.

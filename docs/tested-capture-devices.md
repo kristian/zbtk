@@ -58,7 +58,7 @@ sudo make install
 The stick outputs unwrapped WPAN packages, so no additional unwrapping of the frame will be required:
 
 ```bash
-sudo whsniff -c 19 | zbtk cap --no-unwrap
+sudo whsniff -c 19 | zbtk cap
 ```
 
 ## SMLIGHT SLZB-06M Ethernet Dongle
@@ -82,5 +82,5 @@ npm install -g ember-sniff
 Sniffing is as easy as connecting to the dongle via TCP. `ember-sniff` also outputs raw WPAN packets, thus no additional unwrapping of packets will be required:
 
 ```bash
-ember-sniff -p tcp://192.168.1.152:6638 -c 19 | zbtk cap --no-unwrap
+ember-sniff -p tcp://192.168.1.152:6638 -c 19 | zbtk cap
 ```
