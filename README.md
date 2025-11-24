@@ -736,7 +736,7 @@ Please refer to the [tested capture devices](docs/tested-capture-devices.md) lis
 
 ```bash
 export ZBTK_CRYPTO_WELL_KNOWN_PKS=1
-ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap --no-unrap
+ember-sniff -p tcp://192.168.1.42:6638 -c 19 | zbtk cap
 ```
 
 As said, ZigBee supports multiple types of secure key exchange. The default is the so called "well-known" pre-shared key method, where the initial ZigBee traffic (that is used to exchange a so called "Transport Key") is sent encrypted with a well known, aka the `ZigBeeAlliance09` key: `5A:69:67:42:65:65:41:6C:6C:69:61:6E:63:65:30:39`, as described above. So it will be enough to trust this pre-shared key and wait for any new device to join the network, which will then provide you access to your transport key.
