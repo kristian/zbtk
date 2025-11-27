@@ -423,6 +423,14 @@ export async function process(input = stdin, options) {
       }
     }
   });
+  // when the parser (or underlying stream) ends, close the MQTT client if we created it and re-emit the end event to our EventEmitter
+  parser.on('end', async function() {
+    try {
+      await eventEmitter.close();
+    } finally {
+      eventEmitter.emit('end');
+    }
+  });
   // re-emit error events to our EventEmitter
   parser.on('error', function(err) {
     eventEmitter.emit('error', err);
