@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [2.5] - 2026-07-01
+
+Raise minimum required Node.js version to 22. Bump dependencies.
+
 ## [2.1] - 2025-11-23
 
 Check IEEE 802.15.4 Low-Rate Wireless PAN (WPAN) FCS for packets that are not in a ZigBee Encapsulation Protocol wrapper.

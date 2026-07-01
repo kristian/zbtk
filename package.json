@@ -1,6 +1,6 @@
 {
   "name": "zbtk",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "description": "ZigBee Toolkit for Node.js",
   "keywords": [
     "zigbee",
@@ -47,7 +47,7 @@
     "lint": "eslint"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "author": {
     "name": "Kristian Kraljic",
@@ -67,18 +67,18 @@
     "binary-parser-encoder-bump": "^2.2.1",
     "cap-decoders": "^0.2.0",
     "es-main": "^1.4.0",
-    "mqtt": "^5.14.1",
+    "mqtt": "^5.15.1",
     "pcap-parser": "^0.2.1",
     "traverse": "^0.6.11",
     "whence": "^2.1.0",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^5.6.1",
-    "ava": "^6.4.1",
-    "eslint": "^9.39.1",
-    "eslint-plugin-jsdoc": "^61.4.1",
-    "glob": "^13.0.0"
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "ava": "^8.0.1",
+    "eslint": "^10.6.0",
+    "eslint-plugin-jsdoc": "^63.0.10",
+    "glob": "^13.0.6"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.17.0"
 }
