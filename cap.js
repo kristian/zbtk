@@ -341,8 +341,24 @@ export async function process(input = stdin, options) {
       return;
     }
 
+    let safe = false;
+    if (zbee_nwk.sec) {
+      if (zbee_nwk.data) {
+        logger.warn('Packet encrypted / decryption failed or not attempted');
+        if (logPksInfo) {
+          logger.info('Set or check ZBTK_CRYPTO_(WELL_KNOWN_)PKS environment variable(s) or capture Transport Key');
+          logPksInfo = false; // only log the PKS info once
+        }
+      } else {
+        // the packet was decrypted with the network key of the current network, we can safely assume it is for the current network,
+        // otherwise, if the packet is either unencrypted or could not be decrypted with the given network key, we have no way of
+        // knowing if it belongs to the current network or not and we will rather not publish data of it in the address table
+        safe = true;
+      }
+    }
+
     // populate address table, in case EUIs are to be published
-    if (!env.ZBTK_CAP_PASS_NO_EUI) {
+    if (!env.ZBTK_CAP_PASS_NO_EUI && (env.ZBTK_CAP_POPULATE_UNSAFE_EUI || safe)) {
       try {
         if (zbee_nwk.fc.ext_src) {
           populateAddressTable(zbee_nwk.src64, zbee_nwk.src);
@@ -358,14 +374,6 @@ export async function process(input = stdin, options) {
         }
       } catch (err) {
         logger.error(err);
-      }
-    }
-
-    if (zbee_nwk.sec && zbee_nwk.data) {
-      logger.warn('Packet encrypted / decryption failed or not attempted');
-      if (logPksInfo) {
-        logger.info('Set or check ZBTK_CRYPTO_(WELL_KNOWN_)PKS environment variable(s) or capture Transport Key');
-        logPksInfo = false; // only log the PKS info once
       }
     }
 

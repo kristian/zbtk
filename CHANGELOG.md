@@ -2,9 +2,13 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [2.6] - 2026-08-03
+
+**Behavioral Change:** Only publish "safe" EUI to address table in `cap.js` by default. Add `ZBTK_CAP_POPULATE_UNSAFE_EUI` environment variable to populate the address table with any EUI received (so the "old" behavior). Note that this was added in order to prevent addresses from different / overlapping networks to be published in the same address table, which might lead to unexpected behavior.
+
 ## [2.5] - 2026-07-01
 
-Raise minimum required Node.js version to 22. Bump dependencies.
+**Breaking Change:** Raise minimum required Node.js version to 22. Bump dependencies.
 
 ## [2.1] - 2025-11-23
 

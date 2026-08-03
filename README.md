@@ -230,6 +230,7 @@ To enable automatic decryption of packets, set the pre-configured keys for your 
 
 - See `ZBTK_CRYPTO_PKS` and `ZBTK_CRYPTO_WELL_KNOWN_PKS` of [`crypto.js`](#zbtk-crypto), to pre-configure keys for automatic packet decryption.
 - `ZBTK_CAP_PASS_NO_EUI` by default `cap.js` will attempt to only emit / publish the known IEEE EUI-64 IDs of any device (often printed as a label on the device). The tool will attempt to map given network packets to the devices EUI by creating what is called an address table. In case a device is not present in the address table yet, an error is emitted. To pass the internal network address instead of the EUI set this environment variable.
+- `ZBTK_CAP_POPULATE_UNSAFE_EUI` by default `cap.js` will only populate the address table in case the an encrypted message was received, which could be successfully decrypted with the given network key. In case you want to populate the address table with any EUI received, even if the packet was unencrypted or could not be decrypted, set this environment variable. Note that this might cause addresses from different / overlapping networks to be published in the same address table, which might lead to unexpected behavior.
 - `ZBTK_FORMAT_EUI_SEPARATOR` of [`format.js`](#zbtk-format), for EUI separator style when publishing e.g. to MQTT.
 
 ### <a id='zbtk-cluster'></a>[`cluster.js`](cluster.js) Cluster Library Name and Attributes
