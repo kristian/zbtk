@@ -438,6 +438,14 @@ parsers.zbee_zdp = new Parser()
         .buffer('ext_addr', { length: 8 }) // le
         .nest('cinfo', { type: 'cinfo' }),
 
+      0x001f: new Parser() // Parent Announce
+        .uint8('n_children')
+        .array('children', {
+          length: 'n_children',
+          type: new Parser()
+            .buffer('ext_addr', { length: 8 }) // le
+        }),
+
       0x0021: new Parser() // Bind Request
         .buffer('src64', { length: 8 }) // le
         .uint8('src_ep')
