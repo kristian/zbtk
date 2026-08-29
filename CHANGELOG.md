@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [2.7] - 2026-08-30
+
+Add `retain` to MQTT options in `cap.js` tool, allowing users to specify whether MQTT messages should be retained. Defaults to `false`.
+
 ## [2.6] - 2026-08-03
 
 **Behavioral Change:** Only publish "safe" EUI to address table in `cap.js` by default. Add `ZBTK_CAP_POPULATE_UNSAFE_EUI` environment variable to populate the address table with any EUI received (so the "old" behavior). Note that this was added in order to prevent addresses from different / overlapping networks to be published in the same address table, which might lead to unexpected behavior.

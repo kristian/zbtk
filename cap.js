@@ -116,6 +116,7 @@ export default { process };
  * @param {object} [options.out.mqtt.options] the MQTT connection options
  * @param {object} [options.out.mqtt.client] the MQTT client instead of creating a new one. attention: calling close() will *not* close this client
  * @param {string} [options.out.mqtt.topic='zbtk'] the MQTT topic to publish the packets to
+ * @param {boolean} [options.out.mqtt.retain=false] whether to retain the MQTT messages
  * @param {(buffer: Buffer) => any} [options.bufferFormat] a function to format buffers before emitting them to console / MQTT
  * @returns {Promise<EventEmitter>} a promise to an event emitter (with an additional close method), emitting events of 'options.emit' and 'error' events
  */
@@ -307,7 +308,7 @@ export async function process(input = stdin, options) {
       eventEmitter.emit('data', data, context);
       if (mqtt) {
         try {
-          await mqttClient.publishAsync(mqttTopic, data);
+          await mqttClient.publishAsync(mqttTopic, data, { retain: mqtt.retain ?? false });
         } catch (err) {
           logger.error('MQTT publish raw packet failed', err);
         }
@@ -325,7 +326,7 @@ export async function process(input = stdin, options) {
       eventEmitter.emit('packet', packet, context);
       if (mqtt) {
         try {
-          await mqttClient.publishAsync(mqttTopic, packet.toString() /* internally calls jsonStringify */);
+          await mqttClient.publishAsync(mqttTopic, packet.toString() /* internally calls jsonStringify */, { retain: mqtt.retain ?? false });
         } catch (err) {
           logger.error('MQTT publish packet failed', err);
         }
@@ -424,7 +425,7 @@ export async function process(input = stdin, options) {
       if (mqtt) {
         try {
           await mqttClient.publishAsync(`${mqttTopic}/${!env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${outAttr.id}`,
-            Buffer.isBuffer(outAttr.value) ? outAttr.value : `${outAttr.value}`);
+            Buffer.isBuffer(outAttr.value) ? outAttr.value : `${outAttr.value}`, { retain: mqtt.retain ?? false });
         } catch (err) {
           logger.error(err, 'MQTT publish attribute failed');
         }
