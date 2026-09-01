@@ -39,18 +39,19 @@ const hexPrefix = getEnvVar('ZBTK_UTILS_HEX_PREFIX', '0x') || '';
  * Convert the given hex string to a Buffer.
  *
  * @param {(string|Buffer)} data hex string to convert
+ * @param {boolean} [reverse] whether to reverse the endianess, e.g. when using the value in a ZigBee packet
  * @returns {Buffer} the data as a Buffer
  */
-export function fromHex(data) {
+export function fromHex(data, reverse) {
   if (typeof data === 'string') {
     if (hexPrefix && data.startsWith(hexPrefix)) {
       data = data.slice(hexPrefix.length);
     }
 
-    return Buffer.from(data.replaceAll(/[^0-9A-F]/gi, ''), 'hex');
+    data = Buffer.from(data.replaceAll(/[^0-9A-F]/gi, ''), 'hex');
   }
 
-  return data;
+  return reverse ? reverseEndian(data) : data;
 }
 
 /**

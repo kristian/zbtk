@@ -10,7 +10,7 @@ import { EventEmitter } from 'node:events';
 import { connectAsync as mqttConnect } from 'mqtt';
 
 import { pk } from './crypto.js';
-import { parse as parsePacket, parseZep } from './parse.js';
+import { parse as parsePacket, parseZep, BROADCAST_PAN_ID } from './parse.js';
 import { eui as rawFormatEui } from './format.js';
 function formatEui(data) {
   // all EUIs that we format here are read LE from the packet, so reverse before display
@@ -28,6 +28,23 @@ import whence from 'whence';
 
 function id(address) {
   return fromHex(address).toString('hex');
+}
+
+const panTable = {};
+function populatePanTable(pan, logger) {
+  if (BROADCAST_PAN_ID.equals(pan)) {
+    return;
+  }
+
+  const panId = id(pan);
+  if (panTable[panId]) {
+    return;
+  }
+
+  panTable[panId] = Buffer.from(pan);
+  if (logger && !env.ZBTK_PARSE_FILTER_DST_PAN && Object.keys(panTable).length > 1) {
+    logger.warn(`Multiple ZigBee network IDs (PANs / Personal Area Network IDs) detected (${Object.keys(panTable).map(id => toHex(panTable[id])).join(', ')}). This may indicate multiple networks are present in the capture, an overlap or a channel conflict, which may lead to unexpected results when parsing packets and populating the address table. Consider to set ZBTK_PARSE_FILTER_DST_PAN to a specific PAN ID to filter packets for a single network`);
+  }
 }
 
 const addressTable = {};
@@ -279,6 +296,10 @@ export async function process(input = stdin, options) {
     }
 
     const wpan = parseType === 'zep' ? packet?.wpan : packet;
+    if (wpan?.dst_pan) {
+      populatePanTable(wpan.dst_pan, logger);
+    }
+
     if (packetType === 'APS_CMD_TRANSPORT_KEY') {
       const key = wpan?.zbee_nwk?.zbee_aps?.cmd?.key;
       if (Buffer.isBuffer(key)) {

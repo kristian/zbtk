@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import { Parser } from 'binary-parser-encoder-bump';
 import { pks, decrypt } from './crypto.js';
 import { crc, key as hashKey } from './hash.js';
+import { fromHex } from './utils.js';
 
 import traverse from 'traverse';
 
@@ -921,6 +922,18 @@ parsers.zbee_beacon = new Parser()
   .buffer('tx_offset', { length: 3 }) // le,
   .buffer('update_id', { length: 1 });
 
+export const BROADCAST_PAN_ID = Buffer.from([0xff, 0xff]);
+
+let filterDstPan;
+if (env.ZBTK_PARSE_FILTER_DST_PAN) {
+  // the endianess in ZigBee packets is reversed, compared to what commonly displayed to the user
+  filterDstPan = fromHex(env.ZBTK_PARSE_FILTER_DST_PAN, /* reverse = */true);
+  if (filterDstPan?.length !== 2) {
+    console.warn(`Invalid filter destination PAN ID: ${env.ZBTK_PARSE_FILTER_DST_PAN}, no filter will be applied`);
+    filterDstPan = undefined;
+  }
+}
+
 // IEEE 802.15.4 Low-Rate Wireless PAN (WPAN)
 parsers.wpan = new Parser()
   .namely('wpan')
@@ -1063,25 +1076,36 @@ parsers.wpan = new Parser()
             .buffer('src64', { length: 8 }) // le
         }
       })
-      .choice({
-        tag: 'fc.type',
-        choices: {
-          0x0: new Parser() // Beacon
-            .bit1('assoc_permit', { formatter: formatters.bool })
-            .bit1('bcn_coord', { formatter: formatters.bool })
-            .bit1('$unused')
-            .bit1('battery_ext', { formatter: formatters.bool })
-            .bit4('cap')
-            .bit4('superframe_order')
-            .bit4('beacon_order')
-            .buffer('gts', { length: 2 })
-            .nest('zbee_beacon', { type: 'zbee_beacon' }),
-          0x1: new Parser() // Data
-            .nest('zbee_nwk', { type: 'zbee_nwk' }),
-          0x3: new Parser() // Command
-            .nest('cmd', { type: 'zbee_cmd' })
-        }
-      })
+      .choice(optional({
+        tag: function() { // filter dst_pan
+          let dstPan;
+          if (!filterDstPan || !(dstPan = this.dst_pan) || BROADCAST_PAN_ID.equals(dstPan)) {
+            return true; // continue parsing
+          }
+
+          return filterDstPan.equals(dstPan);
+        },
+        type: new Parser()
+          .choice({
+            tag: 'fc.type',
+            choices: {
+              0x0: new Parser() // Beacon
+                .bit1('assoc_permit', { formatter: formatters.bool })
+                .bit1('bcn_coord', { formatter: formatters.bool })
+                .bit1('$unused')
+                .bit1('battery_ext', { formatter: formatters.bool })
+                .bit4('cap')
+                .bit4('superframe_order')
+                .bit4('beacon_order')
+                .buffer('gts', { length: 2 })
+                .nest('zbee_beacon', { type: 'zbee_beacon' }),
+              0x1: new Parser() // Data
+                .nest('zbee_nwk', { type: 'zbee_nwk' }),
+              0x3: new Parser() // Command
+                .nest('cmd', { type: 'zbee_cmd' })
+            }
+          })
+      }))
   })
   .buffer('fcs', {
     length: 2,

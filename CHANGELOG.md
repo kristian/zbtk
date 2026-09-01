@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [2.8] - 2026-09-01
+
+Add `ZBTK_PARSE_FILTER_DST_PAN` environment variable to filter out packets that are not addressed to the given network id (PAN / Personal Area Network ID). This is useful when capturing packets from a ZigBee network, as it will filter out packets from other networks that are in range, e.g. from conflicting ZigBee networks. The PAN ID is a 2-byte value, e.g. `0x1a2b` or `1a2b`.
+
 ## [2.7] - 2026-08-30
 
 Add `retain` to MQTT options in `cap.js` tool, allowing users to specify whether MQTT messages should be retained. Defaults to `false`.
