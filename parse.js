@@ -1079,11 +1079,12 @@ parsers.wpan = new Parser()
       .choice(optional({
         tag: function() { // filter dst_pan
           let dstPan;
-          if (!filterDstPan || !(dstPan = this.dst_pan) || BROADCAST_PAN_ID.equals(dstPan)) {
+          if (!filterDstPan || !(dstPan = this.dst_pan) || BROADCAST_PAN_ID.equals(dstPan) || filterDstPan.equals(dstPan)) {
             return true; // continue parsing
           }
 
-          return filterDstPan.equals(dstPan);
+          this.$filterDstPan = true; // mark that the dst_pan was filtered, so we can skip the FCS check later
+          return false;
         },
         type: new Parser()
           .choice({
@@ -1113,7 +1114,7 @@ parsers.wpan = new Parser()
       // provide the option to skip the FCS check, as sometimes frames come with a CC24xx metadata instead of a FCS (i.e. some sniffers validate the CRC
       // themselves and replace the FCS with other data, such as LQI / RSSI). in case the packet is part of a ZEP, the FCS is checked when encoding the ZEP package.
       // otherwise calculate the CRC-16/CCITT style for the IEEE 802.15.4 FCS (xor-in & out = 0x0000, poly = 0x1021)
-      return env.ZBTK_PARSE_SKIP_FCS_CHECK || parent(this, '$zep') || fcs.equals(crc(this.$wpanData.subarray(0, this.$wpanLength - 2), 0x0000, 0x0000));
+      return env.ZBTK_PARSE_SKIP_FCS_CHECK || parent(this, '$zep') || this.$filterDstPan || fcs.equals(crc(this.$wpanData.subarray(0, this.$wpanLength - 2), 0x0000, 0x0000));
     })
   });
 
