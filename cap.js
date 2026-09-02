@@ -42,8 +42,11 @@ function populatePanTable(pan, logger) {
   }
 
   panTable[panId] = Buffer.from(pan);
-  if (logger && !env.ZBTK_PARSE_FILTER_DST_PAN && Object.keys(panTable).length > 1) {
-    logger.warn(`Multiple ZigBee network IDs (PANs / Personal Area Network IDs) detected (${Object.keys(panTable).map(id => toHex(panTable[id])).join(', ')}). This may indicate multiple networks are present in the capture, an overlap or a channel conflict, which may lead to unexpected results when parsing packets and populating the address table. Consider to set ZBTK_PARSE_FILTER_DST_PAN to a specific PAN ID to filter packets for a single network`);
+  if (logger && !env.ZBTK_PARSE_FILTER_DST_PAN) {
+    logger.info(`Received data from a new network / PAN-ID: ${toHex(pan)}`);
+    if (Object.keys(panTable).length > 1) {
+      logger.warn(`Multiple networks / PAN-IDs detected (${Object.keys(panTable).map(id => toHex(panTable[id])).join(', ')}). This may indicate multiple networks are present in the capture, an overlap or a channel conflict, which may lead to unexpected results when parsing packets and populating the address table. Consider to set ZBTK_PARSE_FILTER_DST_PAN to a specific PAN ID to filter packets for a single network`);
+    }
   }
 }
 
