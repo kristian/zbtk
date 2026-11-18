@@ -175,7 +175,8 @@ export function stdinMiddleware(yargs, key = 'data', options = { optional: false
 
   return yargs
     .positional(key, Object.assign({}, options, {
-      type: 'string'
+      type: 'string',
+      optional: !!options?.optional // could be a function
     }))
     .middleware(async argv => {
       if (argv.help) {
@@ -204,10 +205,10 @@ export function stdinMiddleware(yargs, key = 'data', options = { optional: false
         }
       }
     }, true)
-    .check((argv, options) => {
+    .check((argv, yargsOptions) => {
       if (argv.help) {
         return true;
-      } else if (!argv[key] && !options?.optional) {
+      } else if (!argv[key] && (typeof options?.optional === 'function' ? !options?.optional(argv, yargsOptions) : !options?.optional)) {
         throw new TypeError(`Missing positional argument [${key}] nor anything was piped to stdin`);
       }
 

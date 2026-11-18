@@ -1,10 +1,20 @@
 import { Buffer } from 'node:buffer';
+import { randomBytes } from 'node:crypto';
 
 import { ic as format } from './format.js';
 import { crc, mmo } from './hash.js';
 
 export const iclen = 16;
 export const crclen = 2;
+
+/**
+ * Generate a random Install Code (ic) with a valid CRC checksum.
+ *
+ * @returns {Buffer} the generated Install Code with a valid CRC checksum
+ */
+export function generate() {
+  return checksum(randomBytes(iclen), true);
+}
 
 /**
  * Validate the given Install Code (ic) by checking the CRC checksum.
@@ -63,8 +73,9 @@ export const command = {
     .positional('action', {
       desc: 'Action to perform',
       type: 'string',
-      choices: ['validate', 'checksum', 'format', 'link']
-    }), 'install-code', { desc: 'Install Code to process', alias: 'ic' })
+      choices: ['validate', 'checksum', 'format', 'link', 'generate']
+    }), 'install-code', { desc: 'Install Code to process', alias: 'ic', optional: (argv, options) => argv.action === 'generate' })
+    .example('$0 ic generate', 'Generate a random Install Code with a valid CRC checksum')
     .example('$0 ic validate 83fed3407a939723a5c639b26916d505c3b5', 'Validate the given Install Code')
     .example('$0 ic checksum 83fed3407a939723a5c639b26916d505', 'Calculate the CRC checksum for the given Install Code')
     .example('$0 ic format 83fed3407a939723a5c639b26916d505c3b5', 'Format the given Install Code')
