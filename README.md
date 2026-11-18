@@ -524,7 +524,7 @@ Install Code Utilities
 
 Positionals:
   action            Action to perform
-                             [string] [required] [choices: "validate", "checksum", "format", "link"]
+                 [string] [required] [choices: "validate", "checksum", "format", "link", "generate"]
   install-code, ic  Install Code to process                                                 [string]
 
 Options:
@@ -532,6 +532,8 @@ Options:
   --help     Show help                                                                     [boolean]
 
 Examples:
+  zbtk ic generate                                    Generate a random Install Code with a valid
+                                                      CRC checksum
   zbtk ic validate                                    Validate the given Install Code
   83fed3407a939723a5c639b26916d505c3b5
   zbtk ic checksum 83fed3407a939723a5c639b26916d505   Calculate the CRC checksum for the given
