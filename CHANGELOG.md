@@ -4,7 +4,7 @@ This file documents all *major & minor* releases. For revisions, please consult 
 
 ## [2.9] - 2026-09-15
 
-Major bump to dependencies.
+Major bump to dependencies. Bump Yarn.
 
 ## [2.8] - 2026-09-01
 

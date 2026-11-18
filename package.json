@@ -1,6 +1,6 @@
 {
   "name": "zbtk",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "ZigBee Toolkit for Node.js",
   "keywords": [
     "zigbee",
@@ -80,5 +80,5 @@
     "eslint-plugin-jsdoc": "^65.4.8",
     "glob": "^14.0.6"
   },
-  "packageManager": "yarn@4.17.0"
+  "packageManager": "yarn@4.18.1"
 }
