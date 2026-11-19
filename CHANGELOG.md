@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [2.10] - 2026-09-15
+
+`cap.js` tool now exports the `addressTable` as a named export.
+
 ## [2.9] - 2026-09-15
 
 Major bump to dependencies. Bump Yarn.

@@ -50,7 +50,7 @@ function populatePanTable(pan, logger) {
   }
 }
 
-const addressTable = {};
+export const addressTable = {};
 function populateAddressTable(eui, addr) {
   if (!Buffer.isBuffer(addr = fromHex(addr)) || addr.length !== 2) {
     throw new TypeError(`Invalid 16-bit network address ${toHex(addr)} for device ${formatEui(eui)}`);
