@@ -26,6 +26,7 @@ export default [
         'asyncArrow': 'always'
       }],
       '@stylistic/brace-style': ['error', '1tbs', { 'allowSingleLine': true }],
+      '@stylistic/list-style': ['error', { 'overrides': { 'ObjectExpression': 'off', 'CallExpression': 'off' } }],
       '@stylistic/multiline-ternary': ['off'],
       '@stylistic/operator-linebreak': ['error', 'after'],
       '@stylistic/quote-props': ['error', 'consistent'],

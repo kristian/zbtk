@@ -397,9 +397,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stylistic/eslint-plugin@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "@stylistic/eslint-plugin@npm:6.0.0"
+"@stylistic/eslint-plugin@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "@stylistic/eslint-plugin@npm:6.0.1"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.10.1"
     "@typescript-eslint/types": "npm:^8.72.2"
@@ -414,7 +414,7 @@ __metadata:
       optional: true
     oxlint:
       optional: true
-  checksum: 10c0/8820cece908d12e4e3f4a5443148128721ed4fff93f954855424b2b53f28697734d739d8a37661171dd34c2f91436d107b80e5e9ab3e37ea7aee83ef738487e6
+  checksum: 10c0/0a52be780f60997a83291a6da6d9c1bbd2e54c2d00b8929e27dd38d5565a8d621786994eec2a58b86aa3e0c7c10815180b5e2ff817a51b5386636cf26ebfd502
   languageName: node
   linkType: hard
 
@@ -903,12 +903,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"binary-parser-encoder-bump@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "binary-parser-encoder-bump@npm:2.2.1"
-  dependencies:
-    smart-buffer: "npm:~4.2.0"
-  checksum: 10c0/c190eaf83e7c1a1c76ea5aec4344f95da00ef545f571314611760e28894a05935f70c95f94c2fb55e107fd34dce05c09b57d625fbef67e2ad170bddd98d1c34b
+"binary-parser@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "binary-parser@npm:3.0.0"
+  checksum: 10c0/c0c264f99323db7df9f78884885da67aa73d295fb1641bd7090941d8bd83eec64ffe4f2a199c22da2fd4028d80e4f6c8cd89993d2964eb3e35d513beda1bed3f
   languageName: node
   linkType: hard
 
@@ -1654,9 +1652,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-jsdoc@npm:^65.4.8":
-  version: 65.4.8
-  resolution: "eslint-plugin-jsdoc@npm:65.4.8"
+"eslint-plugin-jsdoc@npm:^65.5.0":
+  version: 65.5.0
+  resolution: "eslint-plugin-jsdoc@npm:65.5.0"
   dependencies:
     "@es-joy/escodegen": "npm:^5.0.1"
     "@es-joy/jsdoccomment": "npm:~1.2.0"
@@ -1680,7 +1678,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/8dc84cdc16110d28aacd9d0f5b17f115cda60e85f8aa59a46fa83b3bec5d19e653b26793d0b6d7dd4c0058a9bc385ad3f933e4b93c3e678821e430f76fc59052
+  checksum: 10c0/e7b5508cee8881f7edb6826cd8d7d63c7339ea1d4af172fd483c8db8815ea1e095b55b02aac91cbc1b7835d6903399932a8eaac3224d99f3a07b7b6995f4b6d0
   languageName: node
   linkType: hard
 
@@ -3552,7 +3550,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smart-buffer@npm:^4.2.0, smart-buffer@npm:~4.2.0":
+"smart-buffer@npm:^4.2.0":
   version: 4.2.0
   resolution: "smart-buffer@npm:4.2.0"
   checksum: 10c0/a16775323e1404dd43fabafe7460be13a471e021637bc7889468eb45ce6a6b207261f454e4e530a19500cc962c4cc5348583520843b363f4193cee5c00e1e539
@@ -4290,13 +4288,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "zbtk@workspace:."
   dependencies:
-    "@stylistic/eslint-plugin": "npm:^6.0.0"
+    "@stylistic/eslint-plugin": "npm:^6.0.1"
     ava: "npm:^8.4.0"
-    binary-parser-encoder-bump: "npm:^2.2.1"
+    binary-parser: "npm:^3.0.0"
     cap-decoders: "npm:^0.2.0"
     es-main: "npm:^1.4.0"
     eslint: "npm:^10.15.0"
-    eslint-plugin-jsdoc: "npm:^65.4.8"
+    eslint-plugin-jsdoc: "npm:^65.5.0"
     glob: "npm:^14.0.6"
     mqtt: "npm:^5.16.1"
     pcap-parser: "npm:^0.2.1"

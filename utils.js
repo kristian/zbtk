@@ -85,7 +85,7 @@ export function toHex(data, prefix = hexPrefix, pad = 0, reverse) {
  */
 export function jsonParse(text) {
   return traverse.forEach(JSON.parse(text), function(value) {
-    if (typeof value === 'object' && value['$hex']) {
+    if (value && typeof value === 'object' && value['$hex']) {
       this.update(Buffer.from(value['$hex'], 'hex'));
     }
   });
@@ -118,7 +118,7 @@ export function jsonStringify(object, inline = false) {
 
   // revert the $hex objects to buffer
   traverse.forEach(object, function(value) {
-    if (typeof value === 'object' && value['$hex']) {
+    if (value && typeof value === 'object' && value['$hex']) {
       this.update(value.buffer);
     }
   });

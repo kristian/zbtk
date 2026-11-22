@@ -431,6 +431,10 @@ export async function process(input = stdin, options) {
     Object.assign(context, { cluster: reverseEndian(zbee_aps.cluster), profile: reverseEndian(zbee_aps.profile) });
 
     for (const intAttr of zbee_aps.zbee_zcl.attrs) {
+      if (intAttr.status?.[0]) {
+        continue;
+      }
+
       const attr = { // same as for the context variables, expose big-endian instead of little-endian
           id: reverseEndian(intAttr.id),
           value: Buffer.isBuffer(intAttr.value) ? reverseEndian(intAttr.value) : intAttr.value

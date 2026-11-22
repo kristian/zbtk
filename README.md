@@ -15,7 +15,7 @@ A NodeJS based ZigBee Toolkit & Command Line Interface (CLI) for general use.
   * [`hash.js` Hash / Checksum Calculation](#zbtk-hash)
   * [`ic.js` Install Code Utilities](#zbtk-ic)
   * [`parse.js` Packet Binary Parser](#zbtk-parse)
-  * [`type.js` Determine Packet Type](#zbtk-type)<!-- toctoolsend -->
+  * [`type.js` Packet and Data Types](#zbtk-type)<!-- toctoolsend -->
 - [Application Examples](#application-examples)
 - [Author](#author)
 - [Bugs](#bugs)
@@ -72,7 +72,7 @@ The basic structure of this toolkit is as follows: Each file provided can be eit
 - [`hash.js`](#zbtk-hash): Hash / Checksum Calculation
 - [`ic.js`](#zbtk-ic): Install Code Utilities
 - [`parse.js`](#zbtk-parse): Packet Binary Parser
-- [`type.js`](#zbtk-type): Determine Packet Type
+- [`type.js`](#zbtk-type): Packet and Data Types
 
 All tools are exposed via the `zbtk` command line:
 
@@ -88,11 +88,11 @@ Tools:
   zbtk hash [type] [data]          Hash / Checksum Calculation
   zbtk ic <action> [install-code]  Install Code Utilities
   zbtk parse [data]                Packet Binary Parser
-  zbtk type [data]                 Determine Packet Type
+  zbtk type [data]                 Packet and Data Types
 
 Options:
-  --help     Show help                                                                     [boolean]
   --version  Show version number                                                           [boolean]
+  --help     Show help                                                                     [boolean]
 ```
 
 ### <a id='zbtk-cap'></a>[`cap.js`](cap.js) Packet / Attribute (to MQTT) Capture 
@@ -547,7 +547,7 @@ Examples:
 
 ### <a id='zbtk-parse'></a>[`parse.js`](parse.js) Packet Binary Parser
 
-This tool provides a ZigBee binary packet parser (and *soon™* some encoder) functionality based on the awesome [`binary-parser`](https://github.com/keichi/binary-parser) library by [Keichi Takahashi](https://github.com/keichi). It converts a raw ZigBee packet into a object structure, whilst converting its properties, decrypting the packet if needed and parsing any attributes of the packet. The parsing format was inspired by the Wireshark structure. The tool supports parsing / encoding encapsulated:
+This tool provides a ZigBee binary packet parser functionality based on the awesome [`binary-parser`](https://github.com/keichi/binary-parser) library by [Keichi Takahashi](https://github.com/keichi). It converts a raw ZigBee packet into a object structure, whilst converting its properties, decrypting the packet if needed and parsing any attributes of the packet. The parsing format was inspired by the Wireshark structure. The tool supports parsing / encoding encapsulated:
 
 - ZigBee Encapsulation Protocol (`ZEP`) packets
 - Wireless Personal Area Network (`WPAN`) packets
@@ -614,42 +614,53 @@ Examples:
 - Set `ZBTK_PARSE_SKIP_FCS_CHECK` to skip the FCS / CRC validation for IEEE 802.15.4 Low-Rate Wireless PAN (WPAN) packets. This is required, as in some cases adapters will validate the FCS themselves and replace it with other information, such as TI CC24xx-format metadata, RSSI / LQI information. In such cases `ZBTK_PARSE_SKIP_FCS_CHECK` should be set and checking the FCS can be safely skipped.
 - Set `ZBTK_PARSE_KEEP_TEMP` to keep temporary / temporal values used for parsing the packet. This is helpful when debugging the packet parsing. Temporary fields are prefixed with a `$` dollar sign and are removed by default before the packet is returned from parsing.
 
-### <a id='zbtk-type'></a>[`type.js`](type.js) Determine Packet Type
+### <a id='zbtk-type'></a>[`type.js`](type.js) Packet and Data Types
 
-This tool is a helper to determine the packet type of a parsed or raw ZigBee packet. The interface accepts the same (parsed) packet as the [`parse.js`](#zbtk-parse) tool and returns the type of the packet as string. This is especially helpful to filter for specific packet types. For example during [`cap.js`](#zbtk-cap), ZigBee networks are quite noisy due to a lot of `WPAN_ACK` / `WPAN_COMMAND` packages, that are mostly irrelevant when analyzing the network traffic. Determining the type of the packet and filtering the captured package traffic, helps to narrow down the traffic.
+This tool is a helper to determine the packet type of a parsed or raw ZigBee packet. The interface accepts the same (parsed) packet as the [`parse.js`](#zbtk-parse) tool and returns the type of the packet as string. This is especially helpful to filter for specific packet types. For example during [`cap.js`](#zbtk-cap), ZigBee networks are quite noisy due to a lot of `WPAN_ACK` / `WPAN_COMMAND` packages, that are mostly irrelevant when analyzing the network traffic. Determining the type of the packet and filtering the captured package traffic, helps to narrow down the traffic. It also provides Zigbee Cluster Library (ZCL) data types and codecs for encoding and decoding attribute values in wire format.
 
 #### API Usage
 
 <!--- examples/type.js --->
 ```js
-import getPacketType from 'zbtk/type';
+import getPacketType, { types } from 'zbtk/type';
 
 getPacketType(Buffer.from('4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'hex'), 'zep') === 'WPAN_ACK';
+
+const uint16 = types.data[0x21];
+uint16.encode(0x1234).toString('hex') === '3412';
+uint16.decode(Buffer.from('3412', 'hex')) === 0x1234;
 ```
 
+The named export `types` groups packet classifiers by parser name in `types.packet` and ZCL data codecs by numeric type ID in `types.data`. A data entry includes its `id` and `name`. `encode(value)` returns a `Buffer` in wire order, and `decode(bytes)` reads a complete value from a `Buffer` or `Uint8Array`. Use `read(bytes, offset = 0)` to read one value from a larger buffer. It returns `{ value, offset }`, with `offset` pointing to the next unread byte. The codecs operate on value bytes. The packet supplies the attribute ID and type byte separately.
+
 #### CLI Usage
+
+Pass `--data-type` with a decimal or hexadecimal ID to look up its name. Supply value bytes as hex to decode them. For example, `zbtk type --data-type 0x21` prints `uint16`, and `zbtk type --data-type 0x21 3412` prints `4660`.
 
 <!--- cSpell:disable --->
 ```bash
 zbtk type [data]
 
-Determine Packet Type
+Packet and Data Types
 
 Positionals:
-  data  Packet to determine the type for                                                    [string]
+  data  Packet or attribute value bytes                                                     [string]
 
 Options:
-  --version  Show version number                                                           [boolean]
-  --type     Type of packet to determine the type for
+  --version    Show version number                                                         [boolean]
+  --type       Type of packet to determine the type for
               [string] [choices: "zbee_zcl_cmd", "zbee_zcl", "zbee_zdp", "zbee_aps_cmd", "zbee_aps",
                              "zbee_nwk_cmd", "zbee_nwk", "wpan_cmd", "wpan", "zep"] [default: "zep"]
-  --help     Show help                                                                     [boolean]
+  --data-type  Show a data type by ID or decode its value from hex bytes                    [number]
+  --help       Show help                                                                   [boolean]
 
 Examples:
   zbtk type 4558020113fffe0029d84f48995f78359c000a91  Determine the type of ZigBee Encapsulation
   aa000000000000000000000502003ffecb                  Protocol (ZEP) packet
   echo -n 4558020113fffe0029d84f48995f78359c000a91aa  Determine the type of a ZigBee Encapsulation
   000000000000000000000502003ffecb | zbtk type        Protocol (ZEP) packet from stdin
+  zbtk type --data-type 0x21                          Show the name of a data type
+  zbtk type --data-type 0x21 3412                     Decode a data value from its wire bytes
 ```
 <!--- cSpell:enable --->
 

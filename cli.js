@@ -3,6 +3,7 @@
 import yargsFactory from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { commands } from './tools.js';
+import packageJson from './package.json' with { type: 'json' };
 
 const yargs = yargsFactory(hideBin(process.argv));
 const cli = yargs
@@ -15,8 +16,8 @@ const cli = yargs
   .command(commands)
   .demandCommand()
   .wrap(Math.min(120, yargs.terminalWidth()))
-  .help()
-  .version();
+  .version(packageJson.version)
+  .help();
 export default cli;
 
 import esMain from 'es-main';

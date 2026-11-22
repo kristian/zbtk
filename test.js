@@ -26,13 +26,46 @@ test('Cluster tool', t => {
   t.is(cluster.id, 0x0001);
   t.is(cluster.name, 'Power Configuration');
   t.is(cluster.get(0x0000), 'Mains Voltage');
-  t.is(cluster.get(0x4000), 'Manufacturer Specific');
+  t.is(cluster.get(0x4000), undefined);
   t.is(cluster.get(0x1000), undefined);
 
   // test generic clusters
   t.is(getCluster(0x7FAA).name, 'ZigBee Standard');
   t.is(getCluster(0xAAFF).name, 'Reserved');
   t.is(getCluster(0xFFAA).name, 'Manufacturer Specific');
+});
+
+test('Cluster attribute codecs', t => {
+  const cluster = getCluster(0x0000);
+  const build = cluster.attr('0x4000');
+  t.is(cluster.attrs.get(0x4000), build);
+  t.is(cluster.get(0x4000), 'SW Build');
+  t.is(build.type, 0x42);
+  t.deepEqual(build.encode('Aé'), Buffer.from('0341c3a9', 'hex'));
+  t.is(build.decode(Buffer.from('0341c3a9', 'hex')), 'Aé');
+  t.is(build.decode(Buffer.from('ff', 'hex')), null);
+  t.throws(() => build.decode(Buffer.from('0241', 'hex')), { instanceOf: RangeError });
+  t.is(cluster.attr(0x3fff), undefined);
+  t.is(cluster.get(0xfffd), 'Cluster Revision');
+  t.is(cluster.attr(0xfffd).type, 0x21);
+  t.is(getCluster(0x0705).name, 'Prepayment (Smart Energy)');
+});
+
+test('Parse typed attribute values', t => {
+  const stateText = getCluster(0x0014).attr(0x000e);
+  const text = { elementType: 0x42, elements: ['ON', 'OFF'] };
+  const wire = Buffer.from('420200024f4e034f4646', 'hex');
+  t.deepEqual(stateText.encode(text), wire);
+  t.deepEqual(stateText.decode(wire), text);
+
+  const frame = Buffer.concat([Buffer.from('1801013400860e000048', 'hex'), wire, Buffer.from('20000042ff', 'hex')]);
+  const packet = tools.parse.default(frame, 'zbee_zcl');
+  t.deepEqual(packet.attrs, [
+    { id: Buffer.from('3400', 'hex'), status: Buffer.from([0x86]) },
+    { id: Buffer.from('0e00', 'hex'), status: Buffer.from([0]), type: Buffer.from([0x48]), value: text },
+    { id: Buffer.from('2000', 'hex'), status: Buffer.from([0]), type: Buffer.from([0x42]), value: null }
+  ]);
+  t.deepEqual(jsonParse(packet.toString()).attrs, packet.attrs);
 });
 
 /*

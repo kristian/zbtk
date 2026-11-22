@@ -1,0 +1,21 @@
+{
+  "fcf": {
+    "$hex": "00"
+  },
+  "fc": {
+    "ddr": false,
+    "dir": 0,
+    "ms": false,
+    "type": 0
+  },
+  "cmd": {
+    "tsn": 1,
+    "id": {
+      "$hex": "06"
+    }
+  },
+  "attrs": {
+    "$hex": "0100001e00"
+  },
+  "$type": "ZCL_CMD_CONFIG_REPORT"
+}

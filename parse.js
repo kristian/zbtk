@@ -1,9 +1,10 @@
 import { env } from 'node:process';
 import { Buffer } from 'node:buffer';
-import { Parser } from 'binary-parser-encoder-bump';
+import { Parser } from 'binary-parser';
 import { pks, decrypt } from './crypto.js';
 import { crc, key as hashKey } from './hash.js';
 import { fromHex } from './utils.js';
+import { types } from './type.js';
 
 import traverse from 'traverse';
 
@@ -63,8 +64,24 @@ function parent(context, field) {
   return undefined;
 }
 
-function generateSecureParser(name, aadLength, choices, defaultChoice = () => null) {
-  const tempContext = {}; // TODO remove as soon as https://github.com/keichi/binary-parser/issues/263 is fixed
+function wrappedDecryptedPayload(name, type) {
+  return new Parser().wrapped(name, {
+    type,
+    length: 0,
+    wrapper: function() {
+      return this.$data;
+    }
+  });
+}
+
+function generateSecureParser(name, aadLength, choices) {
+  const rawData = new Parser().buffer('data', {
+    length: 0,
+    formatter: function() {
+      return this.$data;
+    }
+  });
+
   return new Parser()
     .namely(name)
     .useContextVars()
@@ -74,7 +91,7 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
         .seek(-1)
         .nest('sc', {
           type: new Parser()
-            .bit1('$unused')
+            .skipBits(1)
             .bit1('verified_fc')
             .bit1('ext_nonce', { formatter: formatters.bool })
             .bit2('key_id')
@@ -104,12 +121,7 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
     })
     .choice(optional({
       tag: () => pks.length, // if there are any pre-shared keys, try to decrypt the payload with it
-      default: new Parser().buffer('data', { // keep the raw data
-        readUntil: () => true, // do not read any additional data
-        formatter: function() {
-          return this.$data;
-        }
-      }),
+      default: rawData,
       type: new Parser()
         .pointer('$aad', {
           offset: function() {
@@ -121,7 +133,7 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
           formatter: parser => parser.data // do not nest pointer
         })
         .buffer('$decrypt', { // override the data field with the decrypted data
-          readUntil: () => true, // do not read any additional data
+          length: 0,
           formatter: function() {
             // try to decrypt with any one of the pre-shared keys
             let lastErr;
@@ -154,134 +166,39 @@ function generateSecureParser(name, aadLength, choices, defaultChoice = () => nu
               return 0xF;
             } else {
               // keep decrypted data only
-              tempContext.data = this.$data = decrypt;
-
+              this.$data = decrypt;
               return parent(this, 'fc').type;
             }
           },
-          defaultChoice: defaultChoice(tempContext), // TODO no longer needed as a function, as soon as tempContext can be removed
           choices: {
-            ...(choices(tempContext)), // TODO no longer needed as a function, as soon as tempContext can be removed
-
-            0xF: new Parser().buffer('data', { // keep the raw data
-              readUntil: () => true, // do not read any additional data
-              formatter: function() {
-                return this.$data;
-              }
-            })
+            ...choices,
+            0xF: rawData
           }
         })
     }));
 }
 
-function zclAttrValueChoice(typeTag = 'type[0]', complex = true) {
-  return {
-    tag: typeTag,
-    choices: {
-      0x00: new Parser(), // null / no data to read from the buffer
-
-      0x08: new Parser().buffer('value', { length: 8 }), // data8
-      0x09: new Parser().buffer('value', { length: 16 }), // data16
-      0x0a: new Parser().buffer('value', { length: 24 }), // data24
-      0x0b: new Parser().buffer('value', { length: 32 }), // data32
-      0x0c: new Parser().buffer('value', { length: 40 }), // data40
-      0x0d: new Parser().buffer('value', { length: 48 }), // data48
-      0x0e: new Parser().buffer('value', { length: 56 }), // data56
-      0x0f: new Parser().buffer('value', { length: 64 }), // data64
-
-      0x10: new Parser().bit8('value', { formatter: formatters.bool }), // bool
-
-      0x18: new Parser().buffer('value', { length: 1 }), // bits8
-      0x19: new Parser().buffer('value', { length: 2 }), // bits16
-      0x1a: new Parser().buffer('value', { length: 3 }), // bits24
-      0x1b: new Parser().buffer('value', { length: 4 }), // bits32
-      0x1c: new Parser().buffer('value', { length: 5 }), // bits40
-      0x1d: new Parser().buffer('value', { length: 6 }), // bits48
-      0x1e: new Parser().buffer('value', { length: 7 }), // bits56
-      0x1f: new Parser().buffer('value', { length: 8 }), // bits64
-
-      0x20: new Parser().uint8('value'), // uint8
-      0x21: new Parser().uint16le('value'), // uint16
-      0x22: new Parser().bit24('value'), // uint24 / TODO?
-      0x23: new Parser().uint32le('value'), // uint32
-      0x24: new Parser().uint32le('$value').bit8('$value2'), // uint40 / TODO
-      0x25: new Parser().uint32le('$value').bit16('$value2'), // uint48 / TODO
-      0x26: new Parser().uint32le('$value').bit24('$value2'), // uint56 / TODO
-      0x27: new Parser().uint64le('value'), // uint64
-
-      0x28: new Parser().int8('value'), // int8
-      0x29: new Parser().int16le('value'), // int16
-      0x2a: new Parser().bit24('value'), // int24 / TODO?
-      0x2b: new Parser().int32le('value'), // int32
-      0x2c: new Parser().int32le('$value').bit8('$value2'), // int40 / TODO
-      0x2d: new Parser().int32le('$value').bit16('$value2'), // int48 / TODO
-      0x2e: new Parser().int32le('$value').bit24('$value2'), // int56 / TODO
-      0x2f: new Parser().int64le('value'), // int64
-
-      0x30: new Parser().uint8('value'), // enum8
-      0x31: new Parser().uint16le('value'), // enum16
-
-      0x38: new Parser().floatle('value'), // sfloat / TODO?
-      0x39: new Parser().floatle('value'), // float
-      0x3a: new Parser().doublele('value'), // double
-
-      0x41: new Parser().uint8('$length').buffer('value', { length: '$length' }), // ostr
-      0x42: new Parser().uint8('$length').string('value', { length: '$length' }), // cstr
-      0x43: new Parser().uint16le('$length').buffer('value', { length: '$length' }), // lostr
-      0x44: new Parser().uint16le('$length').string('value', { length: '$length' }), // lcstr
-
-      ...(complex ? {
-        0x48: new Parser().uint8('$el_type').uint16le('$el_num') // array
-          .array('value', { length: '$el_num', type: new Parser()
-            .choice(zclAttrValueChoice('$el_type', false))
-          }),
-        // 0x4c: new Parser().struct('struct', { length: x }), // TODO / struct
-
-        0x50: new Parser().uint8('$el_type').uint16le('$el_num') // set
-          .array('value', { length: '$el_num', type: new Parser()
-            .choice(zclAttrValueChoice('$el_type', false))
-          }),
-        0x51: new Parser().uint8('$el_type').uint16le('$el_num') // bag
-          .array('value', { length: '$el_num', type: new Parser()
-            .choice(zclAttrValueChoice('$el_type', false))
-          })
-      } : {}),
-
-      0xe0: new Parser() // time
-        .nest('value', {
-          type: new Parser()
-            .uint8('hours')
-            .uint8('mins')
-            .uint8('secs')
-            .uint8('csecs')
-        }),
-      0xe1: new Parser() // date
-        .nest('value', {
-          type: new Parser()
-            .uint8('year')
-            .uint8('month')
-            .uint8('day')
-            .uint8('weekd')
-        }),
-      0xe2: new Parser().uint32le('value'), // utc
-
-      0xe8: new Parser().buffer('value', { length: 2 }), // cluster_id
-      0xe9: new Parser().buffer('value', { length: 2 }), // attr_id
-      0xea: new Parser().buffer('value', { length: 4 }), // bacnet_oid
-
-      0xf0: new Parser().buffer('value', { length: 8 }), // ieee_addr
-      0xf1: new Parser().buffer('value', { length: 16 }) // security_key
+const zclAttrValueParser = new Parser()
+  .buffer('value', {
+    readUntil: 'eof',
+    formatter: function(buffer) {
+      const type = this.type[0];
+      const codec = types.data[type];
+      if (!codec) {
+        throw new RangeError(`Unsupported ZCL attribute type ${type}`);
+      }
+      const { value, offset } = codec.read(buffer);
+      this.$valueLength = offset;
+      return value;
     }
-  };
-}
+  })
+  .seek('$valueLength');
 
-// Capability Information (Named Parser / Not Exposed!)
-// ATTENTION: Sometimes loading this named parser results in a __parser_cinfo not defined, thus the const is used instead
+// Capability Information
 const cinfoParser = new Parser()
-  .namely('cinfo')
   .bit1('alloc', { formatter: formatters.bool })
   .bit1('security', { formatter: formatters.bool })
-  .bit2('$unused')
+  .skipBits(2)
   .bit1('idle_rx', { formatter: formatters.bool })
   .bit1('power', { formatter: formatters.bool })
   .bit1('fdd', { formatter: formatters.bool })
@@ -302,12 +219,19 @@ const zclAttrsParser = new Parser()
         choices: {
           1: new Parser()
             .choice({
-              tag: '$parent.cmd.id[0]',
+              tag: function() { return this.$parent.cmd.id[0]; },
               defaultChoice: new Parser(), // optional
               choices: { 0x01: new Parser().buffer('status', { length: 1 }) } // Read Attributes Response
             })
-            .buffer('type', { length: 1 })
-            .choice(zclAttrValueChoice())
+            .choice(optional({
+              tag: function() { return !this.status?.[0]; },
+              type: new Parser()
+                .buffer('type', { length: 1 })
+                .choice(optional({
+                  tag: function() { return this.type[0] !== 0x00; },
+                  type: zclAttrValueParser
+                }))
+            }))
         }
       })
   });
@@ -359,20 +283,20 @@ parsers.zbee_zdp = new Parser()
                 .bit1('mhz2400', { formatter: formatters.bool })
                 .bit1('mhz900', { formatter: formatters.bool })
                 .bit1('mhz868', { formatter: formatters.bool })
-                .bit5('$unused')
+                .skipBits(5)
                 .bit1('frag_support', { formatter: formatters.bool })
                 .bit1('user', { formatter: formatters.bool })
                 .bit1('complex', { formatter: formatters.bool })
                 .bit3('type')
             })
-            .nest('cinfo', { type: 'cinfo' })
+            .nest('cinfo', { type: cinfoParser })
             .buffer('manufacturer', { length: 2 }) // le
             .uint8('max_buffer')
             .uint8('max_incoming_transfer')
             .nest('server', {
               type: new Parser()
                 .bit7('stack_compliance_revision')
-                .bit2('$unused')
+                .skipBits(2)
                 .bit1('nwk_mgr', { formatter: formatters.bool })
                 .bit1('bak_disc', { formatter: formatters.bool })
                 .bit1('pri_disc', { formatter: formatters.bool })
@@ -385,7 +309,7 @@ parsers.zbee_zdp = new Parser()
             .uint16le('max_outgoing_transfer')
             .nest('dcf', {
               type: new Parser()
-                .bit6('$unused')
+                .skipBits(6)
                 .bit1('esdla', { formatter: formatters.bool })
                 .bit1('eaela', { formatter: formatters.bool })
             })
@@ -437,7 +361,7 @@ parsers.zbee_zdp = new Parser()
       0x0013: new Parser() // Device Announcement
         .buffer('nwk_addr', { length: 2 }) // le
         .buffer('ext_addr', { length: 8 }) // le
-        .nest('cinfo', { type: 'cinfo' }),
+        .nest('cinfo', { type: cinfoParser }),
 
       0x001f: new Parser() // Parent Announce
         .uint8('n_children')
@@ -468,11 +392,11 @@ parsers.zbee_zdp = new Parser()
             .buffer('extended_pan', { length: 8 }) // le
             .buffer('ext_addr', { length: 8 }) // le
             .buffer('addr', { length: 2 }) // le
-            .bit1('$unused')
+            .skipBits(1)
             .bit3('relationship')
             .bit2('idle_rx', { formatter: formatters.bool })
             .bit2('type')
-            .bit6('$unused')
+            .skipBits(6)
             .bit2('permit_joining', { formatter: formatters.bool })
             .uint8('depth')
             .uint8('lqi')
@@ -495,7 +419,7 @@ parsers.zbee_zdp = new Parser()
           type: new Parser()
             .bit1('rejoin', { formatter: formatters.bool })
             .bit1('remove', { formatter: formatters.bool })
-            .bit6('$unused')
+            .skipBits(6)
         }),
       0x8034: new Parser(), // Leave Response
 
@@ -513,7 +437,7 @@ parsers.zbee_zcl = new Parser()
   .seek(-1)
   .nest('fc', {
     type: new Parser()
-      .bit3('$unused')
+      .skipBits(3)
       .bit1('ddr', { formatter: formatters.bool })
       .bit1('dir')
       .bit1('ms', { formatter: formatters.bool })
@@ -529,7 +453,7 @@ parsers.zbee_zcl = new Parser()
       .uint8('tsn')
       .buffer('id', { length: 1 })
       .choice({
-        tag: 'id[0]',
+        tag: function() { return this.id[0]; },
         defaultChoice: new Parser(), // optional
         choices: {
           0x0b: new Parser() // Default Response
@@ -538,7 +462,7 @@ parsers.zbee_zcl = new Parser()
       })
   })
   .choice({
-    tag: 'cmd.id[0]',
+    tag: function() { return this.cmd.id[0]; },
     choices: {
       0x00: zclAttrsParser, // Read Attributes
       0x01: zclAttrsParser, // Read Attributes Response
@@ -546,9 +470,9 @@ parsers.zbee_zcl = new Parser()
       0x04: new Parser() // Write Attributes Response
         .buffer('status', { length: 1 }),
       0x06: new Parser() // Configure Reporting
-        .buffer('attrs', { readUntil: 'eof' }) // TODO remove
-        .array('$attrs', { // TODO, in order to properly parse this array, we need knowledge about properties of each attribute, don't parse it right now
-          readUntil: () => true, // do not read any data
+        .buffer('attrs', { readUntil: 'eof' })
+        .array('$attrs', { // TODO handle direction and reportable change before decoding records
+          length: 0,
           type: new Parser()
             .buffer('dir', { length: 1 })
             .buffer('attr_id', { length: 2 })
@@ -581,7 +505,7 @@ parsers.zbee_aps_cmd = new Parser()
   .useContextVars()
   .buffer('id', { length: 1 })
   .choice({
-    tag: 'id[0]',
+    tag: function() { return this.id[0]; },
     choices: {
       0x05: new Parser() // Transport Key
         .buffer('key_type', { length: 1 })
@@ -593,16 +517,10 @@ parsers.zbee_aps_cmd = new Parser()
   });
 
 // ZigBee Secure / Encrypted Application Support Layer Frame
-parsers.zbee_aps_secure = generateSecureParser('zbee_aps_secure', 15, tempContext => ({
+parsers.zbee_aps_secure = generateSecureParser('zbee_aps_secure', 15, {
   0x0: new Parser(), // APS Data / TODO
-  0x1: new Parser().wrapped('cmd', { // APS Cmd
-    type: 'zbee_aps_cmd',
-    readUntil: () => true, // do not read any additional data
-    wrapper: function() {
-      return tempContext.data; // TODO replace with this.$data
-    }
-  })
-}));
+  0x1: wrappedDecryptedPayload('cmd', 'zbee_aps_cmd')
+});
 
 // ZigBee Application Support Layer Data
 parsers.zbee_aps = new Parser()
@@ -688,16 +606,16 @@ parsers.zbee_nwk_cmd = new Parser()
   .useContextVars()
   .buffer('id', { length: 1 })
   .choice({
-    tag: 'id[0]',
+    tag: function() { return this.id[0]; },
     choices: {
       0x01: new Parser().nest('route', { // Mandy-to-One Route Request
         type: new Parser().nest('opts', {
           type: new Parser()
-            .bit1('$unused')
+            .skipBits(1)
             .bit1('mcast', { formatter: formatters.bool })
             .bit1('dest_ext', { formatter: formatters.bool })
             .bit2('many2one')
-            .bit3('$unused')
+            .skipBits(3)
         })
           .uint8('id')
           .buffer('dest', { length: 2 })
@@ -706,11 +624,11 @@ parsers.zbee_nwk_cmd = new Parser()
       0x02: new Parser() // Route Reply
         .nest('opts', {
           type: new Parser()
-            .bit1('$unused')
+            .skipBits(1)
             .bit1('mcast', { formatter: formatters.bool })
             .bit1('resp_ext', { formatter: formatters.bool })
             .bit1('orig_ext', { formatter: formatters.bool })
-            .bit4('$unused')
+            .skipBits(4)
         })
         .nest('route', {
           type: new Parser()
@@ -741,7 +659,7 @@ parsers.zbee_nwk_cmd = new Parser()
             .bit1('children', { formatter: formatters.bool })
             .bit1('request', { formatter: formatters.bool })
             .bit1('rejoin', { formatter: formatters.bool })
-            .bit5('$unused')
+            .skipBits(5)
         }),
       0x05: new Parser().nest('relay', { // Route Record
         type: new Parser()
@@ -760,7 +678,7 @@ parsers.zbee_nwk_cmd = new Parser()
         .buffer('status', { length: 1 }),
       0x08: new Parser().nest('link', { // Link Status
         type: new Parser()
-          .bit1('$unused')
+          .skipBits(1)
           .bit1('last', { formatter: formatters.bool })
           .bit1('first', { formatter: formatters.bool })
           .bit5('count')
@@ -768,9 +686,9 @@ parsers.zbee_nwk_cmd = new Parser()
             length: 'count',
             type: new Parser()
               .buffer('address', { length: 2 }) // le
-              .bit1('$unused')
+              .skipBits(1)
               .bit3('outgoing_cost')
-              .bit1('$unused')
+              .skipBits(1)
               .bit3('incoming_cost')
           })
       }),
@@ -781,7 +699,7 @@ parsers.zbee_nwk_cmd = new Parser()
         .buffer('status', { length: 1 })
         .nest('ed_prnt_info', {
           type: new Parser()
-            .bit5('$unused')
+            .skipBits(5)
             .bit1('power_negotiation_supported', { formatter: formatters.bool })
             .bit1('ed_tmo_req_keepalive', { formatter: formatters.bool })
             .bit1('mac_data_poll_keepalive', { formatter: formatters.bool })
@@ -795,12 +713,12 @@ parsers.zbee_cmd = new Parser()
   .useContextVars()
   .buffer('id', { length: 1 })
   .choice({
-    tag: 'id[0]',
+    tag: function() { return this.id[0]; },
     choices: {
       0x01: new Parser() // Association Request
         .bit1('alloc_addr', { formatter: formatters.bool })
         .bit1('sec_capable', { formatter: formatters.bool })
-        .bit2('$unused')
+        .skipBits(2)
         .bit1('idle_rx', { formatter: formatters.bool })
         .bit1('power_src')
         .bit1('device_type')
@@ -823,22 +741,10 @@ parsers.zbee_cmd = new Parser()
 parsers.zbee_nwk_secure = generateSecureParser('zbee_nwk_secure', function() {
   const fc = parent(this, 'fc');
   return 22 + (fc.ext_dst ? 8 : 0) + (fc.ext_src ? 8 : 0) + (fc.src_route ? 2 + (parent(this, 'relay').count * 2) : 0);
-}, tempContext => ({
-  0x0: new Parser().wrapped('zbee_aps', { // NWK Data
-    type: 'zbee_aps',
-    readUntil: () => true, // do not read any additional data
-    wrapper: function() {
-      return tempContext.data; // TODO replace with this.$data
-    }
-  }),
-  0x1: new Parser().wrapped('cmd', { // NWK Cmd
-    type: 'zbee_nwk_cmd',
-    readUntil: () => true, // do not read any additional data
-    wrapper: function() {
-      return tempContext.data; // TODO replace with this.$data
-    }
-  })
-}));
+}, {
+  0x0: wrappedDecryptedPayload('zbee_aps', 'zbee_aps'),
+  0x1: wrappedDecryptedPayload('cmd', 'zbee_nwk_cmd')
+});
 
 // ZigBee Network Layer Data
 parsers.zbee_nwk = new Parser()
@@ -852,7 +758,7 @@ parsers.zbee_nwk = new Parser()
       .bit2('discovery')
       .bit4('proto_version')
       .bit2('type')
-      .bit2('$unused')
+      .skipBits(2)
       .bit1('end_device_initiator', { formatter: formatters.bool })
       .bit1('ext_src', { formatter: formatters.bool })
       .bit1('ext_dst', { formatter: formatters.bool })
@@ -946,7 +852,7 @@ parsers.wpan = new Parser()
     formatter: parser => parser.data // do not nest pointer
   })
   .buffer('$wpanLength', {
-    readUntil: () => true, // do not read any data
+    length: 0,
     formatter: function() {
       return this.$wpanData.length;
     }
@@ -1093,7 +999,7 @@ parsers.wpan = new Parser()
               0x0: new Parser() // Beacon
                 .bit1('assoc_permit', { formatter: formatters.bool })
                 .bit1('bcn_coord', { formatter: formatters.bool })
-                .bit1('$unused')
+                .skipBits(1)
                 .bit1('battery_ext', { formatter: formatters.bool })
                 .bit4('cap')
                 .bit4('superframe_order')
@@ -1122,7 +1028,7 @@ parsers.wpan = new Parser()
 const zepParser = new Parser()
   .useContextVars()
   .buffer('$zep', { // mark ZEP packages (to determine "length" for WPAN)
-    readUntil: () => true, // do not read any data
+    length: 0,
     formatter: function() {
       return true;
     }

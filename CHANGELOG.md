@@ -2,6 +2,20 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [3.0] - 2026-11-22
+
+### Breaking changes
+
+- ZBTK now requires Node.js 22.12 or later.
+- `cluster.attrs` now maps IDs to `{ id, name, type, encode, decode }` objects. Use `cluster.attr(id)` for the full entry or `cluster.get(id)` for its name. Unmapped attribute IDs return `undefined`.
+- ZCL attribute decoding now follows the wire data types. For example, the invalid Boolean marker `0xff` decodes to `null`. `cap.js` skips attribute records with a failed read status.
+
+### Added and fixed
+
+- Verify and expand cluster and attribute mappings against the ZCL specification and zigbee-herdsman. Add wire codecs to each mapped attribute.
+- Add `types.data` to `type.js` and `zbtk type --data-type` to look up data types and decode attribute value bytes.
+- Switch `parse.js` back to upstream `binary-parser` 3.0.0. Use the parser context for decrypted payloads and fix a bounds error on Configure Reporting timeout records.
+
 ## [2.10] - 2026-09-15
 
 `cap.js` tool now exports the `addressTable` as a named export.

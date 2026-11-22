@@ -2,9 +2,11 @@ import { Buffer } from 'node:buffer';
 
 import { parse as parsePacket } from './parse.js';
 
-const types = {};
+export const types = { packet: {}, data: {} };
 
-types.zbee_zcl_cmd = packet => {
+// Packet classifiers
+
+types.packet.zbee_zcl_cmd = packet => {
   switch (packet?.id[0]) {
     case 0x00:
       return 'ZCL_CMD_READ_ATTR';
@@ -57,10 +59,10 @@ types.zbee_zcl_cmd = packet => {
   }
 };
 
-types.zbee_zcl = packet => {
+types.packet.zbee_zcl = packet => {
   switch (packet?.fc.type) {
     case 0x0:
-      return types.zbee_zcl_cmd(packet.cmd);
+      return types.packet.zbee_zcl_cmd(packet.cmd);
     case 0x1:
       return 'ZCL_ACK';
     case 0x2:
@@ -72,7 +74,7 @@ types.zbee_zcl = packet => {
   }
 };
 
-types.zbee_zdp = (packet, cluster) => {
+types.packet.zbee_zdp = (packet, cluster) => {
   if (!Buffer.isBuffer(cluster)) {
     return 'ZDP_UNKNOWN';
   }
@@ -305,7 +307,7 @@ types.zbee_zdp = (packet, cluster) => {
   }
 };
 
-types.zbee_aps_cmd = packet => {
+types.packet.zbee_aps_cmd = packet => {
   switch (packet?.id[0]) {
     case 0x01:
       return 'APS_CMD_SKKE1';
@@ -348,11 +350,11 @@ types.zbee_aps_cmd = packet => {
   }
 };
 
-types.zbee_aps = packet => {
+types.packet.zbee_aps = packet => {
   if (packet?.zbee_zcl) {
-    return types.zbee_zcl(packet.zbee_zcl);
+    return types.packet.zbee_zcl(packet.zbee_zcl);
   } else if (packet?.zbee_zdp) {
-    return types.zbee_zdp(packet.zbee_zdp, packet.cluster);
+    return types.packet.zbee_zdp(packet.zbee_zdp, packet.cluster);
   }
 
   switch (packet?.fc.type) {
@@ -362,7 +364,7 @@ types.zbee_aps = packet => {
       if (Buffer.isBuffer(packet.data)) {
         return 'APS_CMD'; // still encrypted
       } else {
-        return types.zbee_aps_cmd(packet.cmd);
+        return types.packet.zbee_aps_cmd(packet.cmd);
       }
     case 0x2:
       return 'APS_ACK';
@@ -371,7 +373,7 @@ types.zbee_aps = packet => {
   }
 };
 
-types.zbee_nwk_cmd = packet => {
+types.packet.zbee_nwk_cmd = packet => {
   switch (packet?.id[0]) {
     case 0x01:
       return 'NWK_CMD_ROUTE_REQ';
@@ -408,9 +410,9 @@ types.zbee_nwk_cmd = packet => {
   }
 };
 
-types.zbee_nwk = packet => {
+types.packet.zbee_nwk = packet => {
   if (packet?.zbee_aps) {
-    return types.zbee_aps(packet.zbee_aps);
+    return types.packet.zbee_aps(packet.zbee_aps);
   }
 
   switch (packet?.fc.type) {
@@ -420,14 +422,14 @@ types.zbee_nwk = packet => {
       if (Buffer.isBuffer(packet.data)) {
         return 'NWK_CMD'; // still encrypted
       } else {
-        return types.zbee_nwk_cmd(packet.cmd);
+        return types.packet.zbee_nwk_cmd(packet.cmd);
       }
     default:
       return 'NWK_UNKNOWN';
   }
 };
 
-types.wpan_cmd = packet => {
+types.packet.wpan_cmd = packet => {
   switch (packet?.id[0]) {
     case 0x01:
       return 'WPAN_CMD_ASSOC_REQ';
@@ -452,9 +454,9 @@ types.wpan_cmd = packet => {
   }
 };
 
-types.wpan = packet => {
+types.packet.wpan = packet => {
   if (packet?.zbee_nwk) {
-    return types.zbee_nwk(packet.zbee_nwk);
+    return types.packet.zbee_nwk(packet.zbee_nwk);
   }
 
   switch (packet?.fc.type) {
@@ -465,15 +467,15 @@ types.wpan = packet => {
     case 0x2:
       return 'WPAN_ACK';
     case 0x3:
-      return types.wpan_cmd(packet?.cmd);
+      return types.packet.wpan_cmd(packet?.cmd);
     default:
       return 'WPAN_UNKNOWN';
   }
 };
 
-types.zep = packet => {
+types.packet.zep = packet => {
   if (packet?.wpan) {
-    return types.wpan(packet?.wpan);
+    return types.packet.wpan(packet?.wpan);
   }
 
   return 'ZEP_UNKNOWN';
@@ -494,29 +496,334 @@ export default function type(packet, type = 'wpan') {
     packet = parsePacket(packet, type);
   }
 
-  if (!(type in types)) {
+  if (!Object.hasOwn(types.packet, type)) {
     throw new TypeError(`Unknown packet type: ${type}`);
   }
 
-  return types[type](packet);
+  return types.packet[type](packet);
 }
+
+// Data types keyed by numeric ZCL type ID
+function bytes(value) {
+  if (!(value instanceof Uint8Array)) {
+    throw new TypeError('Expected a Buffer or Uint8Array');
+  }
+  return Buffer.isBuffer(value) ? value : Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+}
+
+function requireBytes(buffer, offset, length) {
+  if (offset + length > buffer.length) {
+    throw new RangeError('Truncated ZCL attribute value');
+  }
+}
+
+function defineDataType(id, name, { encode, read }) {
+  const codec = {
+    id,
+    name,
+    encode,
+    read(buffer, offset = 0) {
+      buffer = bytes(buffer);
+      if (!Number.isInteger(offset) || offset < 0 || offset > buffer.length) {
+        throw new RangeError('Invalid ZCL attribute value offset');
+      }
+      return read(buffer, offset);
+    },
+    decode(buffer) {
+      const { value, offset } = codec.read(buffer);
+      if (offset !== buffer.length) {
+        throw new RangeError('Trailing bytes after ZCL attribute value');
+      }
+      return value;
+    }
+  };
+  types.data[id] = codec;
+}
+
+function fixed(length, read, write) {
+  return {
+    encode(value) {
+      const buffer = Buffer.alloc(length);
+      write(buffer, value);
+      return buffer;
+    },
+    read(buffer, offset) {
+      requireBytes(buffer, offset, length);
+      return { value: read(buffer, offset), offset: offset + length };
+    }
+  };
+}
+
+function raw(length) {
+  return fixed(length, (buffer, offset) => buffer.subarray(offset, offset + length), (buffer, value) => {
+    value = bytes(value);
+    if (value.length !== length) {
+      throw new RangeError(`Expected ${length} bytes for ZCL attribute value`);
+    }
+    buffer.set(value);
+  });
+}
+
+function integer(length, signed = false) {
+  if (length <= 6) {
+    const read = signed ? 'readIntLE' : 'readUIntLE';
+    const write = signed ? 'writeIntLE' : 'writeUIntLE';
+    return fixed(length, (buffer, offset) => buffer[read](offset, length), (buffer, value) => {
+      if (!Number.isInteger(value)) {
+        throw new TypeError('Expected an integer for ZCL attribute value');
+      }
+      buffer[write](value, 0, length);
+    });
+  }
+
+  const bits = length * 8;
+  const normalize = signed ? BigInt.asIntN : BigInt.asUintN;
+  return fixed(length, (buffer, offset) => {
+    const high = BigInt(buffer.readUIntLE(offset + 6, length - 6));
+    const low = BigInt(buffer.readUIntLE(offset, 6));
+    return normalize(bits, (high << 48n) | low);
+  }, (buffer, value) => {
+    if (typeof value !== 'bigint') {
+      throw new TypeError('Expected a bigint for ZCL attribute value');
+    }
+    if (normalize(bits, value) !== value) {
+      throw new RangeError('ZCL attribute value is out of range');
+    }
+    const unsigned = BigInt.asUintN(bits, value);
+    buffer.writeUIntLE(Number(unsigned & 0xffffffffffffn), 0, 6);
+    buffer.writeUIntLE(Number(unsigned >> 48n), 6, length - 6);
+  });
+}
+
+function readHalfFloat(buffer, offset) {
+  const bits = buffer.readUInt16LE(offset);
+  const sign = bits & 0x8000 ? -1 : 1;
+  const exponent = (bits >> 10) & 0x1f;
+  const fraction = bits & 0x3ff;
+  if (exponent === 0x1f) {
+    return fraction ? NaN : sign * Infinity;
+  }
+  return exponent ? sign * (1 + fraction / 1024) * 2 ** (exponent - 15) : sign * fraction * 2 ** -24;
+}
+
+function writeHalfFloat(buffer, value) {
+  const sign = value < 0 || Object.is(value, -0) ? 0x8000 : 0;
+  const magnitude = Math.abs(value);
+  if (Number.isNaN(magnitude)) {
+    buffer.writeUInt16LE(0x7e00);
+    return;
+  }
+  if (magnitude >= 65520) {
+    buffer.writeUInt16LE(sign | 0x7c00);
+    return;
+  }
+  const exponent = Math.max(-14, Math.floor(Math.log2(magnitude)));
+  const significand = magnitude * 2 ** (10 - exponent);
+  const whole = Math.floor(significand);
+  // Round halfway values to the nearest even significand.
+  const rounded = significand === whole + 0.5 ? whole + whole % 2 : Math.round(significand);
+  buffer.writeUInt16LE(sign | ((exponent + 14) * 1024 + rounded));
+}
+
+function floating(length, read, write) {
+  return fixed(length, read, (buffer, value) => {
+    if (typeof value !== 'number') {
+      throw new TypeError('Expected a number for ZCL attribute value');
+    }
+    write(buffer, value);
+  });
+}
+
+function string(lengthBytes, characters) {
+  const invalidLength = lengthBytes === 1 ? 0xff : 0xffff;
+  return {
+    encode(value) {
+      if (value === null) {
+        return Buffer.alloc(lengthBytes, 0xff);
+      }
+      if (characters && typeof value !== 'string') {
+        throw new TypeError('Expected a string for ZCL attribute value');
+      }
+      const data = characters ? Buffer.from(value, 'utf8') : bytes(value);
+      if (data.length >= invalidLength) {
+        throw new RangeError('ZCL attribute value exceeds the maximum string length');
+      }
+      const prefix = Buffer.alloc(lengthBytes);
+      prefix.writeUIntLE(data.length, 0, lengthBytes);
+      return Buffer.concat([prefix, data]);
+    },
+    read(buffer, offset) {
+      requireBytes(buffer, offset, lengthBytes);
+      const length = buffer.readUIntLE(offset, lengthBytes);
+      offset += lengthBytes;
+      if (length === invalidLength) {
+        return { value: null, offset };
+      }
+      requireBytes(buffer, offset, length);
+      const data = buffer.subarray(offset, offset + length);
+      return { value: characters ? data.toString('utf8') : data, offset: offset + length };
+    }
+  };
+}
+
+function elementCodec(type) {
+  if (!Number.isInteger(type) || !Object.hasOwn(types.data, type)) {
+    throw new RangeError(`Unsupported ZCL element type ${type}`);
+  }
+  return types.data[type];
+}
+
+function collection(structure = false) {
+  const length = structure ? 2 : 3;
+  return {
+    encode(value) {
+      if (value === null) {
+        return structure ? Buffer.from([0xff, 0xff]) : Buffer.from([0x00, 0xff, 0xff]);
+      }
+      const elements = structure ? value : value?.elements;
+      if (!Array.isArray(elements) || elements.length >= 0xffff) {
+        throw new RangeError('Expected fewer than 65535 ZCL collection elements');
+      }
+      const header = Buffer.alloc(length);
+      header.writeUInt16LE(elements.length, length - 2);
+      if (structure) {
+        const fields = [header];
+        for (const { type, value } of elements) {
+          fields.push(Buffer.from([type]), elementCodec(type).encode(value));
+        }
+        return Buffer.concat(fields);
+      }
+      const codec = elementCodec(value.elementType);
+      header.writeUInt8(value.elementType);
+      return Buffer.concat([header, ...elements.map(element => codec.encode(element))]);
+    },
+    read(buffer, offset) {
+      requireBytes(buffer, offset, length);
+      const elementType = structure ? undefined : buffer[offset];
+      const count = buffer.readUInt16LE(offset + length - 2);
+      offset += length;
+      if (count === 0xffff) {
+        return { value: null, offset };
+      }
+      const codec = structure ? undefined : elementCodec(elementType);
+      const elements = [];
+      for (let i = 0; i < count; i++) {
+        if (structure) {
+          requireBytes(buffer, offset, 1);
+          const type = buffer[offset];
+          const field = elementCodec(type).read(buffer, offset + 1);
+          elements.push({ type, value: field.value });
+          offset = field.offset;
+        } else {
+          const field = codec.read(buffer, offset);
+          elements.push(field.value);
+          offset = field.offset;
+        }
+      }
+      return { value: structure ? elements : { elementType, elements }, offset };
+    }
+  };
+}
+
+function components(keys) {
+  return fixed(keys.length, (buffer, offset) => Object.fromEntries(keys.map((key, i) => [key, buffer[offset + i]])), (buffer, value) => {
+    for (const [i, key] of keys.entries()) {
+      if (!Number.isInteger(value[key])) {
+        throw new TypeError(`Expected an integer for ZCL ${key}`);
+      }
+      buffer.writeUInt8(value[key], i);
+    }
+  });
+}
+
+const noData = fixed(0, () => null, (_buffer, value) => {
+  if (value != null) {
+    throw new TypeError('Expected no ZCL attribute value');
+  }
+});
+defineDataType(0x00, 'noData', noData);
+for (let size = 1; size <= 8; size++) {
+  const bits = size * 8;
+  defineDataType(0x07 + size, `data${bits}`, raw(size));
+  defineDataType(0x17 + size, `bitmap${bits}`, raw(size));
+  defineDataType(0x1f + size, `uint${bits}`, integer(size));
+  defineDataType(0x27 + size, `int${bits}`, integer(size, true));
+}
+defineDataType(0x10, 'boolean', fixed(1, (buffer, offset) => {
+  const value = buffer[offset];
+  if (value === 0xff) {
+    return null;
+  }
+  if (value > 1) {
+    throw new RangeError('Invalid ZCL boolean value');
+  }
+  return value === 1;
+}, (buffer, value) => {
+  if (value !== null && typeof value !== 'boolean') {
+    throw new TypeError('Expected a boolean or null for ZCL attribute value');
+  }
+  buffer[0] = value === null ? 0xff : Number(value);
+}));
+defineDataType(0x30, 'enum8', integer(1));
+defineDataType(0x31, 'enum16', integer(2));
+defineDataType(0x38, 'float16', floating(2, readHalfFloat, writeHalfFloat));
+defineDataType(0x39, 'float32', floating(4, (buffer, offset) => buffer.readFloatLE(offset), (buffer, value) => buffer.writeFloatLE(value)));
+defineDataType(0x3a, 'float64', floating(8, (buffer, offset) => buffer.readDoubleLE(offset), (buffer, value) => buffer.writeDoubleLE(value)));
+defineDataType(0x41, 'octetString', string(1, false));
+defineDataType(0x42, 'characterString', string(1, true));
+defineDataType(0x43, 'longOctetString', string(2, false));
+defineDataType(0x44, 'longCharacterString', string(2, true));
+defineDataType(0x48, 'array', collection());
+defineDataType(0x4c, 'structure', collection(true));
+defineDataType(0x50, 'set', collection());
+defineDataType(0x51, 'bag', collection());
+defineDataType(0xe0, 'timeOfDay', components(['hours', 'mins', 'secs', 'csecs']));
+defineDataType(0xe1, 'date', components(['year', 'month', 'day', 'weekd']));
+defineDataType(0xe2, 'utc', integer(4));
+defineDataType(0xe8, 'clusterId', raw(2));
+defineDataType(0xe9, 'attributeId', raw(2));
+defineDataType(0xea, 'bacnetOid', raw(4));
+defineDataType(0xf0, 'ieeeAddress', raw(8));
+defineDataType(0xf1, 'securityKey', raw(16));
+defineDataType(0xff, 'unknown', noData);
 
 import { stdinMiddleware } from './utils.js';
 export const command = {
   command: 'type [data]',
-  desc: 'Determine Packet Type',
+  desc: 'Packet and Data Types',
   builder: yargs => stdinMiddleware(yargs
     .option('type', {
       desc: 'Type of packet to determine the type for',
       type: 'string',
-      choices: Object.keys(types),
+      choices: Object.keys(types.packet),
       default: 'zep'
-    }), { desc: 'Packet to determine the type for' })
+    })
+    .option('data-type', {
+      desc: 'Show a data type by ID or decode its value from hex bytes',
+      type: 'number',
+      requiresArg: true
+    }), {
+    desc: 'Packet or attribute value bytes',
+    optional: argv => argv.dataType !== undefined
+  })
     .example('$0 type 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb', 'Determine the type of ZigBee Encapsulation Protocol (ZEP) packet')
     .example('echo -n 4558020113fffe0029d84f48995f78359c000a91aa000000000000000000000502003ffecb | $0 type', 'Determine the type of a ZigBee Encapsulation Protocol (ZEP) packet from stdin')
+    .example('$0 type --data-type 0x21', 'Show the name of a data type')
+    .example('$0 type --data-type 0x21 3412', 'Decode a data value from its wire bytes')
     .version(false)
     .help(),
   handler: argv => {
-    console.log(type(argv.data, argv.type));
+    if (argv.dataType === undefined) {
+      console.log(type(argv.data, argv.type));
+      return;
+    }
+
+    const dataType = types.data[argv.dataType];
+    if (!dataType) {
+      throw new TypeError(`Unknown data type: ${argv.dataType}`);
+    }
+
+    const value = argv.data ? dataType.decode(argv.data) : dataType.name;
+    console.log(Buffer.isBuffer(value) ? value.toString('hex') : value);
   }
 };
