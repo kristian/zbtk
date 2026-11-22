@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import { parse as parsePacket } from './parse.js';
 
 export const types = { packet: {}, data: {} };
+export const { packet, data } = types;
 
 // Packet classifiers
 

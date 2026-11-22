@@ -631,7 +631,9 @@ uint16.encode(0x1234).toString('hex') === '3412';
 uint16.decode(Buffer.from('3412', 'hex')) === 0x1234;
 ```
 
-The named export `types` groups packet classifiers by parser name in `types.packet` and ZCL data codecs by numeric type ID in `types.data`. A data entry includes its `id` and `name`. `encode(value)` returns a `Buffer` in wire order, and `decode(bytes)` reads a complete value from a `Buffer` or `Uint8Array`. Use `read(bytes, offset = 0)` to read one value from a larger buffer. It returns `{ value, offset }`, with `offset` pointing to the next unread byte. The codecs operate on value bytes. The packet supplies the attribute ID and type byte separately.
+The named export `types` groups packet classifiers by parser name in `types.packet` and ZCL data codecs by numeric type ID in `types.data`. Import `packet` or `data` from `zbtk/type` to access either table directly.
+
+A data entry includes its `id` and `name`. `encode(value)` returns a `Buffer` in wire order, and `decode(bytes)` reads a complete value from a `Buffer` or `Uint8Array`. Use `read(bytes, offset = 0)` to read one value from a larger buffer. It returns `{ value, offset }`, with `offset` pointing to the next unread byte. The codecs operate on value bytes. The packet supplies the attribute ID and type byte separately.
 
 #### CLI Usage
 
