@@ -18,6 +18,9 @@ const formatters = {
     }
 
     return object;
+  },
+  unwrap: function(array) {
+    return array.map(item => item.$unwrap || item);
   }
 };
 
@@ -339,16 +342,16 @@ parsers.zbee_zdp = new Parser()
         .uint8('in_count')
         .array('in_clusters', {
           length: 'in_count',
-          formatter: array => array.map(item => item.cluster_id),
           type: new Parser()
-            .buffer('cluster_id', { length: 2 }) // le
+            .buffer('$unwrap', { length: 2 }), // le
+          formatter: formatters.unwrap
         })
         .uint8('out_count')
         .array('out_clusters', {
           length: 'out_count',
-          formatter: array => array.map(item => item.cluster_id),
           type: new Parser()
-            .buffer('cluster_id', { length: 2 }) // le
+            .buffer('$unwrap', { length: 2 }), // le
+          formatter: formatters.unwrap
         }),
       0x8006: new Parser() // Match Descriptor Response
         .buffer('nwk_addr', { length: 2 }) // le
@@ -495,6 +498,14 @@ parsers.zbee_zcl = new Parser()
           type: new Parser()
             .buffer('attr_id', { length: 2 })
             .buffer('type', { length: 1 })
+        }),
+      0x12: new Parser() // Discover Commands Received Response
+        .buffer('dis', { length: 1 })
+        .array('cs', {
+          readUntil: 'eof',
+          type: new Parser()
+            .buffer('$unwrap', { length: 1 }),
+          formatter: formatters.unwrap
         })
     }
   });
@@ -667,8 +678,8 @@ parsers.zbee_nwk_cmd = new Parser()
           .array('relay', {
             length: 'count',
             type: new Parser()
-              .buffer('address', { length: 2 }), // le
-            formatter: array => array.map(item => item.address)
+              .buffer('$unwrap', { length: 2 }), // le
+            formatter: formatters.unwrap
           })
       }),
       0x06: new Parser() // Rejoin Request
@@ -781,8 +792,8 @@ parsers.zbee_nwk = new Parser()
           .array('relay', {
             length: 'count',
             type: new Parser()
-              .buffer('address', { length: 2 }), // le
-            formatter: array => array.map(item => item.address)
+              .buffer('$unwrap', { length: 2 }), // le
+            formatter: formatters.unwrap
           })
       })
     }

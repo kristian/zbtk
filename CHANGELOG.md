@@ -15,6 +15,7 @@ This file documents all *major & minor* releases. For revisions, please consult 
 - Verify and expand cluster and attribute mappings against the ZCL specification and zigbee-herdsman. Add wire codecs to each mapped attribute.
 - Add `types.data` to `type.js` and `zbtk type --data-type` to look up data types and decode attribute value bytes.
 - Switch `parse.js` back to upstream `binary-parser` 3.0.0. Use the parser context for decrypted payloads and fix a bounds error on Configure Reporting timeout records.
+- Add ZCL Discover Commands Received Response to `parse.js`
 
 ## [2.10] - 2026-09-15
 
