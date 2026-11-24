@@ -181,6 +181,10 @@ capEmitter.on('attribute', function(attr, context) {
 
 In case `out.log` is set, emits are also print to `stdout` / console. `out.log` may include different options than `emit`, e.g. set `out.log` to `data` to print out the binary data of each packet to console, while emitting the parsed attributes to the eventing interface or MQTT if the `out.mqtt` option is set. Note that the packet always gets parsed in case either `emit` or `out.log` contains `packet` or `attribute`, or in case a `filter` is set.
 
+Set `out.mqtt.topic` to a string to use it as the base topic, or pass a function `(topic, context) => ...` that returns the full publish topic. The function receives `zbtk` for raw and parsed packets and `zbtk/device/cluster/attribute` for attributes. Returning a falsy value skips the MQTT publish while the capture event still fires.
+
+E.g. to publish attributes by endpoint, read `(context.packet.wpan ?? context.packet).zbee_nwk.zbee_aps`. Use its `dst` endpoint for writes (`context.write`) and its `src` endpoint for reports and read responses.
+
 To close any MQTT client created when the `out.mqtt` option as set, invoke the `.close()` function:
 
 ```js

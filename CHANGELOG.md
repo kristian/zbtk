@@ -2,6 +2,10 @@
 
 This file documents all *major & minor* releases. For revisions, please consult the [commit history](https://github.com/kristian/zbtk/commits/main).
 
+## [3.1] - 2026-11-24
+
+`cap.js` now accepts a function in `out.mqtt.topic` to choose the MQTT topic for each message using its capture context. Returning a falsy value skips the MQTT publish.
+
 ## [3.0] - 2026-11-22
 
 ### Breaking changes
