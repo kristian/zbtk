@@ -135,7 +135,7 @@ export default { process };
  * @param {string} [options.out.mqtt.url] the MQTT broker URL
  * @param {object} [options.out.mqtt.options] the MQTT connection options
  * @param {object} [options.out.mqtt.client] the MQTT client instead of creating a new one. attention: calling close() will *not* close this client
- * @param {string|(topic: string, context: object) => (string|false|null|undefined)} [options.out.mqtt.topic='zbtk'] the base topic or a function that receives the full default topic (including 'zbtk') and the capture context. Return the MQTT topic to publish to or a falsy value to skip publishing the message.
+ * @param {string|(topic: string, context: object) => (string|false|null|undefined)} [options.out.mqtt.topic='zbtk'] the base topic or a function that receives the full default topic (including 'zbtk') and the capture context with the event name (`emit`) and, for attribute events, the emitted attribute (`attr`). Return the MQTT topic to publish to or a falsy value to skip publishing the message.
  * @param {boolean} [options.out.mqtt.retain=false] whether to retain the MQTT messages
  * @param {(buffer: Buffer) => any} [options.bufferFormat] a function to format buffers before emitting them to console / MQTT
  * @returns {Promise<EventEmitter>} a promise to an event emitter (with an additional close method), emitting events of 'options.emit' and 'error' events
@@ -341,7 +341,7 @@ export async function process(input = stdin, options) {
       eventEmitter.emit('data', data, context);
       if (mqtt) {
         try {
-          await publishMqtt(mqttTopic, data, context);
+          await publishMqtt(mqttTopic, data, { ...context, emit: 'data' });
         } catch (err) {
           logger.error('MQTT publish raw packet failed', err);
         }
@@ -359,7 +359,7 @@ export async function process(input = stdin, options) {
       eventEmitter.emit('packet', packet, context);
       if (mqtt) {
         try {
-          await publishMqtt(mqttTopic, packet.toString() /* internally calls jsonStringify */, context);
+          await publishMqtt(mqttTopic, packet.toString() /* internally calls jsonStringify */, { ...context, emit: 'packet' });
         } catch (err) {
           logger.error('MQTT publish packet failed', err);
         }
@@ -462,7 +462,7 @@ export async function process(input = stdin, options) {
       if (mqtt) {
         try {
           await publishMqtt(`${mqttTopic}/${!env.ZBTK_CAP_PASS_NO_EUI ? formatEui(eui) : toHex(addr)}/${toHex(zbee_aps.cluster)}/${outAttr.id}`,
-            Buffer.isBuffer(outAttr.value) ? outAttr.value : `${outAttr.value}`, context);
+            Buffer.isBuffer(outAttr.value) ? outAttr.value : `${outAttr.value}`, { ...context, emit: 'attribute', attr });
         } catch (err) {
           logger.error('MQTT publish attribute failed', err);
         }
